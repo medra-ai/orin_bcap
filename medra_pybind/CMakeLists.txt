@@ -7,10 +7,17 @@ message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 
 # Set the names and sources of the module
 set(MODULE_NAME denso_pybind)
-set(SOURCES src/bindings.cpp)
+set(SOURCES 
+    # src/bindings.cpp
+    src/medra_bcap_service.cpp)
 
 # Cmake version policy
 cmake_policy(SET CMP0057 NEW)
+
+# Include dir
+include_directories(
+  include
+)
 
 # Pybind
 set(PYBIND11_FINDPYTHON ON)

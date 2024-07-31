@@ -7,31 +7,33 @@
 
 #include "medra_bcap_service.hpp"
 
-// #include <chrono>
-// #include <functional>
-// #include <memory>
-// #include <string>
-// #include <stdlib.h>
-// #include <sstream>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <string>
+#include <stdlib.h>
+#include <sstream>
+#include <iostream>
+#include <thread>
 
-#include "bcap_core/bcap_funcid.h"
-#include "bcap_core/bCAPClient/bcap_client.h"
-#include "bcap_core/RACString/rac_string.h"
+#include "bcap_funcid.h"
+#include "bCAPClient/bcap_client.h"
+#include "RACString/rac_string.h"
 
 namespace medra_bcap_service {
 
-BCAPService::BCAPService(const std::string& ip_address)
+MedraBCAPService::MedraBCAPService(const std::string& ip_address)
 : m_type(""), m_addr(ip_address),
 m_port(0), m_timeout(0), m_retry(0), m_wait(0),
 m_fd(0), m_wdt(0), m_invoke(0)
 {}
 
-BCAPService::~BCAPService()
+MedraBCAPService::~MedraBCAPService()
 {
   Disconnect();
 }
 
-HRESULT BCAPService::Connect()
+HRESULT MedraBCAPService::Connect()
 {
   HRESULT hr;
   std::stringstream  ss1;
@@ -49,7 +51,7 @@ HRESULT BCAPService::Connect()
   return hr;
 }
 
-HRESULT BCAPService::Disconnect()
+HRESULT MedraBCAPService::Disconnect()
 {
   if(m_fd > 0) {
   KeyHandle_Vec::iterator it;
@@ -88,19 +90,19 @@ HRESULT BCAPService::Disconnect()
   return S_OK;
 }
 
-const std::string& BCAPService::get_Type() const
+const std::string& MedraBCAPService::get_Type() const
 {
   return m_type;
 }
 
-void BCAPService::put_Type(const std::string& type)
+void MedraBCAPService::put_Type(const std::string& type)
 {
   if(m_fd == 0) {
   m_type = type;
   }
 }
 
-uint32_t BCAPService::get_Timeout() const
+uint32_t MedraBCAPService::get_Timeout() const
 {
   uint32_t value = 0;
   if(FAILED(bCap_GetTimeout(m_fd, &value))) {
@@ -109,14 +111,14 @@ uint32_t BCAPService::get_Timeout() const
   return value;
 }
 
-void BCAPService::put_Timeout(uint32_t value)
+void MedraBCAPService::put_Timeout(uint32_t value)
 {
   if(SUCCEEDED(bCap_SetTimeout(m_fd, value))) {
   m_timeout = value;
   }
 }
 
-unsigned int BCAPService::get_Retry() const
+unsigned int MedraBCAPService::get_Retry() const
 {
   unsigned int value = 0;
   if(FAILED(bCap_GetRetry(m_fd, &value))) {
@@ -125,55 +127,55 @@ unsigned int BCAPService::get_Retry() const
   return value;
 }
 
-void BCAPService::put_Retry(unsigned int value)
+void MedraBCAPService::put_Retry(unsigned int value)
 {
   if(SUCCEEDED(bCap_SetRetry(m_fd, value))) {
   m_retry = value;
   }
 }
 
-bool BCAPService::CallFunction(
-  const std::shared_ptr<bcap_service_interfaces::srv::Bcap::Request> request,
-  std::shared_ptr<bcap_service_interfaces::srv::Bcap::Response> response)
-{
-  HRESULT hr = S_OK;
-  char * chRet = NULL;
-  VARIANT_Vec vntArgs;
-  VARIANT_Ptr vntRet(new VARIANT());
-  VariantInit(vntRet.get());
+// bool MedraBCAPService::CallFunction(
+//   const std::shared_ptr<bcap_service_interfaces::srv::Bcap::Request> request,
+//   std::shared_ptr<bcap_service_interfaces::srv::Bcap::Response> response)
+// {
+//   HRESULT hr = S_OK;
+//   char * chRet = NULL;
+//   VARIANT_Vec vntArgs;
+//   VARIANT_Ptr vntRet(new VARIANT());
+//   VariantInit(vntRet.get());
 
-  for(int i = 0; i < request->vnt_args.size(); i++) {
-    VARIANT_Ptr vntTmp(new VARIANT());
-    VariantInit(vntTmp.get());
-    hr = ConvertRacStr2Variant(
-      request->vnt_args[i].vt, request->vnt_args[i].value.c_str(),
-      vntTmp.get());
-    if(FAILED(hr)) goto err_proc;
-    vntArgs.push_back(*vntTmp.get());
-  }
+//   for(int i = 0; i < request->vnt_args.size(); i++) {
+//     VARIANT_Ptr vntTmp(new VARIANT());
+//     VariantInit(vntTmp.get());
+//     hr = ConvertRacStr2Variant(
+//       request->vnt_args[i].vt, request->vnt_args[i].value.c_str(),
+//       vntTmp.get());
+//     if(FAILED(hr)) goto err_proc;
+//     vntArgs.push_back(*vntTmp.get());
+//   }
 
-  hr = ExecFunction(request->func_id, vntArgs, vntRet);
-  if(FAILED(hr)) goto err_proc;
+//   hr = ExecFunction(request->func_id, vntArgs, vntRet);
+//   if(FAILED(hr)) goto err_proc;
 
-  hr = ConvertVariant2RacStr(*vntRet.get(), &chRet);
-  if(FAILED(hr)) goto err_proc;
+//   hr = ConvertVariant2RacStr(*vntRet.get(), &chRet);
+//   if(FAILED(hr)) goto err_proc;
 
-  response->hresult = S_OK;
-  response->vnt_ret.vt = vntRet->vt;
-  response->vnt_ret.value = chRet;
+//   response->hresult = S_OK;
+//   response->vnt_ret.vt = vntRet->vt;
+//   response->vnt_ret.value = chRet;
 
-  free(chRet);
+//   free(chRet);
 
-  post_proc:
-    return true;
-  err_proc:
-    response->hresult = hr;
-    response->vnt_ret.vt = VT_EMPTY;
-    response->vnt_ret.value = "";
-    goto post_proc;
-}
+//   post_proc:
+//     return true;
+//   err_proc:
+//     response->hresult = hr;
+//     response->vnt_ret.vt = VT_EMPTY;
+//     response->vnt_ret.value = "";
+//     goto post_proc;
+// }
 
-HRESULT BCAPService::ExecFunction(
+HRESULT MedraBCAPService::ExecFunction(
   int32_t func_id, VARIANT_Vec& vntArgs,
   VARIANT_Ptr& vntRet)
 {

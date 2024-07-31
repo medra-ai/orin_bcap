@@ -9,7 +9,26 @@
 
 #include <string>
 
-#include "bcap_core/dn_common.h"
+#include "variant_allocator.hpp"
+
+#include "dn_common.h"
+#include "dn_device.h"
+
+
+typedef std::pair<int32_t,uint32_t> KeyHandle;
+typedef std::vector<KeyHandle> KeyHandle_Vec;
+
+struct variant_deleter
+{
+  void operator()(VARIANT *p) const
+  {
+    VariantClear(p);
+    delete p;
+  }
+};
+
+typedef std::unique_ptr<VARIANT, variant_deleter> VARIANT_Ptr;
+typedef std::vector<VARIANT, VariantAllocator<VARIANT> > VARIANT_Vec;
 
 
 namespace medra_bcap_service {
@@ -40,9 +59,9 @@ public:
     VARIANT_Ptr& vntRet);
 
 private:
-  bool CallFunction(
-  const std::shared_ptr<bcap_service_interfaces::srv::Bcap::Request> request,
-    std::shared_ptr<bcap_service_interfaces::srv::Bcap::Response> response);
+//   bool CallFunction(
+//   const std::shared_ptr<bcap_service_interfaces::srv::Bcap::Request> request,
+//     std::shared_ptr<bcap_service_interfaces::srv::Bcap::Response> response);
 
   // Connect parameters
   std::string m_type, m_addr;
