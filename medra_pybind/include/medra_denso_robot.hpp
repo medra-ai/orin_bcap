@@ -26,12 +26,21 @@ public:
     static constexpr int BCAP_CONTROLLER_CONNECT_ARGS = 4;
     static constexpr int BCAP_CONTROLLER_EXECUTE_ARGS = 3;
 
+    // Robot command constants
+    static constexpr int BCAP_ROBOT_EXECUTE_ARGS = 3;
+
+    // Constructor and destructor
     MedraDensoRobot(const std::string& name, const int* mode, const std::string& ip_address);
     ~MedraDensoRobot();
 
+    // Controller commands
     HRESULT ControllerConnect();
 
-
+    // Robot commands
+    HRESULT ExecTakeArm();
+    HRESULT ExecGiveArm();
+    // HRESULT ExecCurJnt(std::vector<double>& pose);
+    // HRESULT ExecSlaveMove(const std::vector<double>& pose, std::vector<double>& joint);
 private:
 
     BCAPService_Ptr _bcap_service;
