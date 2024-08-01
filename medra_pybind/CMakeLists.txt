@@ -8,7 +8,7 @@ message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 # Set the names and sources of the module
 set(MODULE_NAME denso_pybind)
 set(SOURCES 
-    # src/bindings.cpp
+    src/bindings.cpp
     src/medra_bcap_service.cpp
     src/medra_denso_robot.cpp)
 

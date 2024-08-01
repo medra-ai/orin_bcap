@@ -892,23 +892,23 @@ HRESULT MedraBCAPService::ExecFunction(
 } // namespace medra_bcap_service
 
 
-int main(int argc, char * argv[])
-{
-    HRESULT hr;
+// int main(int argc, char * argv[])
+// {
+//     HRESULT hr;
 
-    medra_bcap_service::MedraBCAPService bcapsrv("");
-    hr = bcapsrv.Connect();
+//     medra_bcap_service::MedraBCAPService bcapsrv("");
+//     hr = bcapsrv.Connect();
 
-    if(FAILED(hr)) {
-        std::cerr << "Failed to connect to b-CAP service" << std::endl;
-        return 1;
-    }
+//     if(FAILED(hr)) {
+//         std::cerr << "Failed to connect to b-CAP service" << std::endl;
+//         return 1;
+//     }
 
-    std::cout << "Connected to b-CAP service" << std::endl;
-    std::cout << "Disconnecting in 5 seconds..." << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+//     std::cout << "Connected to b-CAP service" << std::endl;
+//     std::cout << "Disconnecting in 5 seconds..." << std::endl;
+//     std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    bcapsrv.Disconnect();
-    std::cout << "Disconnected from b-CAP service" << std::endl;
-    return 0;
-}
+//     bcapsrv.Disconnect();
+//     std::cout << "Disconnected from b-CAP service" << std::endl;
+//     return 0;
+// }
