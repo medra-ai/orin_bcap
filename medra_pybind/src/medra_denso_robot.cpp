@@ -15,6 +15,7 @@
 #include "medra_bcap_service.hpp"
 
 #include <sstream>
+#include <iostream>
 #include <cstring>
 
 namespace medra_denso_robot {
@@ -258,6 +259,99 @@ HRESULT MedraDensoRobot::ExecSlaveMove(const std::vector<double>& pose, std::vec
   return hr;
 }
 
+// Based on DensoRobot::ChangeMode
+HRESULT MedraDensoRobot::ChangeMode(int mode)
+{
+  HRESULT hr = S_OK;
+
+  if (*m_mode == 0) {
+    // Change to slave mode
+    if (mode != 0) {
+      hr = ExecSlaveMode("slvSendFormat", m_sendfmt);
+      if (FAILED(hr)) {
+        std::cerr << "Invalid argument value send_format = 0x%x" << m_sendfmt << std::endl;
+        return hr;
+      }
+      hr = ExecSlaveMode("slvRecvFormat", m_recvfmt, m_tsfmt);
+      if (FAILED(hr)) {
+        std::cerr << "Invalid argument value recv_format = 0x%x" << m_recvfmt << std::endl;
+        return hr;
+      }
+      hr = ExecTakeArm();
+      if (FAILED(hr)) {
+        return hr;
+      }
+
+      hr = ExecSlaveMode("slvChangeMode", mode);
+      if (FAILED(hr)) {
+        return hr;
+      }
+
+      m_memTimeout = _bcap_service->get_Timeout();
+      m_memRetry = _bcap_service->get_Retry();
+      if (mode & SLVMODE_SYNC_WAIT) {
+        _bcap_service->put_Timeout(this->SLVMODE_TIMEOUT_SYNC);
+      } else {
+        _bcap_service->put_Timeout(this->SLVMODE_TIMEOUT_ASYNC);
+      }
+      std::cout <<
+        "bcap-slave timeout changed to " << _bcap_service->get_Timeout() << " msec mode: 0x" << mode << std::endl;
+      _bcap_service->put_Retry(3);
+    }
+  } else {
+    _bcap_service->put_Timeout(m_memTimeout);
+    _bcap_service->put_Retry(m_memRetry);
+
+    hr = ExecSlaveMode("slvChangeMode", mode);
+    ExecGiveArm();
+  }
+
+  return hr;
+}
+
+// Based on DensoRobot::ExecSlaveMode
+HRESULT MedraDensoRobot::ExecSlaveMode(const std::string& name, int32_t format, int32_t option)
+{
+  int argc;
+  VARIANT_Vec vntArgs;
+  VARIANT_Ptr vntRet(new VARIANT());
+  int32_t* pval;
+
+  VariantInit(vntRet.get());
+
+  for (argc = 0; argc < BCAP_ROBOT_EXECUTE_ARGS; argc++) {
+    VARIANT_Ptr vntTmp(new VARIANT());
+    VariantInit(vntTmp.get());
+
+    switch (argc) {
+      case 0:
+        vntTmp->vt = VT_UI4;
+        vntTmp->ulVal = _controller_handle;
+        break;
+      case 1:
+        vntTmp->vt = VT_BSTR;
+        vntTmp->bstrVal = ConvertStringToBSTR(name);
+        break;
+      case 2:
+        if (option == 0) {
+          vntTmp->vt = VT_I4;
+          vntTmp->lVal = format;
+        } else {
+          vntTmp->vt = (VT_ARRAY | VT_I4);
+          vntTmp->parray = SafeArrayCreateVector(VT_I4, 0, 2);
+          SafeArrayAccessData(vntTmp->parray, (void**)&pval);
+          pval[0] = format;
+          pval[1] = option;
+          SafeArrayUnaccessData(vntTmp->parray);
+        }
+        break;
+    }
+
+    vntArgs.push_back(*vntTmp.get());
+  }
+
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
+}
 
 HRESULT MedraDensoRobot::CreateSendParameter(
   const std::vector<double>& pose, VARIANT_Ptr& send, const int miniio,

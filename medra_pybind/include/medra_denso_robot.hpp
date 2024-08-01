@@ -75,6 +75,18 @@ public:
         RECVFMT_USERIO = 0x0200,
     };
 
+    enum
+    {
+        TSFMT_MILLISEC = 0,
+        TSFMT_MICROSEC = 1,
+    };
+
+    enum
+    {
+        SLVMODE_TIMEOUT_SYNC = 16,
+        SLVMODE_TIMEOUT_ASYNC = 8,
+    };
+
     // Constructor and destructor
     MedraDensoRobot(const std::string& name, const int* mode, const std::string& ip_address);
     ~MedraDensoRobot();
@@ -86,10 +98,15 @@ public:
     HRESULT ExecTakeArm();
     HRESULT ExecGiveArm();
 
+
+
     HRESULT ExecCurJnt(std::vector<double>& pose);
     HRESULT ExecSlaveMove(const std::vector<double>& pose, std::vector<double>& joint);
 
 private:
+    HRESULT ChangeMode(int mode);
+    HRESULT ExecSlaveMode(const std::string& name, int32_t format, int32_t option=0);
+    
     HRESULT CreateSendParameter(
         const std::vector<double>& pose, VARIANT_Ptr& send, const int miniio = 0,
         const int handio = 0, const int recv_userio_offset = 0, const int recv_userio_size = 0,
@@ -108,6 +125,8 @@ private:
     const int * m_mode;
     std::string m_addr;
 
+    uint32_t m_memTimeout;
+    unsigned int m_memRetry;
     int m_tsfmt, m_timestamp;
     int m_sendfmt, m_send_miniio, m_send_handio;
     int m_recvfmt, m_recv_miniio, m_recv_handio;
