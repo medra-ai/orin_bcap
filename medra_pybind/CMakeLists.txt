@@ -9,7 +9,8 @@ message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 set(MODULE_NAME denso_pybind)
 set(SOURCES 
     # src/bindings.cpp
-    src/medra_bcap_service.cpp)
+    src/medra_bcap_service.cpp
+    src/medra_denso_robot.cpp)
 
 # Cmake version policy
 cmake_policy(SET CMP0057 NEW)

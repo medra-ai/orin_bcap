@@ -82,4 +82,6 @@ private:
 
 }  // namespace medra_bcap_service
 
+typedef std::shared_ptr<medra_bcap_service::MedraBCAPService> BCAPService_Ptr;
+
 #endif  // MEDRA_BCAP_SERVICE_HPP_
