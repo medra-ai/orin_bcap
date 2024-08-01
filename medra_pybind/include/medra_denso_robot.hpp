@@ -98,13 +98,11 @@ public:
     HRESULT ExecTakeArm();
     HRESULT ExecGiveArm();
 
-
-
     HRESULT ExecCurJnt(std::vector<double>& pose);
     HRESULT ExecSlaveMove(const std::vector<double>& pose, std::vector<double>& joint);
 
-private:
     HRESULT ChangeMode(int mode);
+private:
     HRESULT ExecSlaveMode(const std::string& name, int32_t format, int32_t option=0);
     
     HRESULT CreateSendParameter(
