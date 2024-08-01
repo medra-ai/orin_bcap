@@ -49,12 +49,12 @@ BSTR ConvertStringToBSTR(const std::string& str)
 }
 
 MedraDensoRobot::MedraDensoRobot(
-  const std::string& name, const int* mode, const std::string& ip_address)
+  const std::string& name, const int* mode, const std::string& ip_address, const int port, const int connect_timeout)
   : m_name(name), m_mode(mode), m_addr(ip_address)
 {
-  BCAPService_Ptr service = std::make_shared<medra_bcap_service::MedraBCAPService>(m_addr);
+  BCAPService_Ptr service = std::make_shared<medra_bcap_service::MedraBCAPService>(m_addr, port, connect_timeout);
   service->put_Type("tcp");
-
+  service->Connect();
 }
 
 // Based on DensoControllerRC9::AddController()
@@ -669,3 +669,70 @@ HRESULT MedraDensoRobot::ParseRecvParameter(
 
 
 }  // namespace medra_denso_robot
+
+
+int main(int argc, char *argv[]) {
+  std::string error_msg = "";
+  const std::vector<double> dummy_pose = {1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0};
+  const std::vector<double> dummy_joint_position = {1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0};
+  std::vector<double> current_joint_position = dummy_joint_position;
+  std::vector<double> new_joint_position = dummy_joint_position;
+
+  // Setup
+  const std::string ip_address = "192.168.0.1";
+  const int port = 5007;
+  const int connect_timeout = 2000;
+  const int mode = 0x202;
+
+  // service_start
+  // controller_connect
+  // TODO: clear errors
+  // controller_getrobot
+  medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
+
+  // TODO: manual reset
+  // TODO: turn on motors
+  // TODO: set speed
+
+  HRESULT result;
+  result = robot.ExecTakeArm();
+  if (FAILED(result)) {
+    error_msg = "Failed to take arm.";
+    goto err_proc;
+  }
+
+  // TODO: turn on slave mode
+  result = robot.ChangeMode(mode);
+
+  // move
+  current_joint_position = dummy_joint_position;
+  result = robot.ExecCurJnt(current_joint_position);
+  if (FAILED(result) || current_joint_position == dummy_joint_position) {
+    error_msg = "Failed to get current joint position.";
+    goto err_proc;
+  }
+
+  for (int i = 0; i < 10; i++) {
+    // add a small increment to each joint
+    for (int j = 0; j < 6; j++) {
+      new_joint_position[j] = new_joint_position[j] + 0.001;
+    }
+    // Use dummy pose because we are controlling in joint mode
+    result = robot.ExecSlaveMove(dummy_pose, new_joint_position);
+    if (FAILED(result)) {
+      error_msg = "Failed to move robot.";
+      goto err_proc;
+    }
+  }
+
+  // Teardown (destructor)
+  // robot_release
+  // controller_disconnect
+  // service_stop
+
+  post_proc:
+    return 0;
+  err_proc:
+    throw std::runtime_error(error_msg);
+    return 1;
+}

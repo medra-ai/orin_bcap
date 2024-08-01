@@ -22,9 +22,9 @@
 
 namespace medra_bcap_service {
 
-MedraBCAPService::MedraBCAPService(const std::string& ip_address)
+MedraBCAPService::MedraBCAPService(const std::string& ip_address, const int port, const int timeout)
 : m_type(""), m_addr(ip_address),
-m_port(0), m_timeout(0), m_retry(0), m_wait(0),
+m_port(port), m_timeout(timeout), m_retry(0), m_wait(0),
 m_fd(0), m_wdt(0), m_invoke(0)
 {}
 

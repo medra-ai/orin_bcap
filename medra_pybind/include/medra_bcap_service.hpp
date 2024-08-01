@@ -36,7 +36,7 @@ namespace medra_bcap_service {
 class MedraBCAPService
 {
 public:
-  MedraBCAPService(const std::string& ip_address);
+  MedraBCAPService(const std::string &ip_address, const int port, const int timeout);
   virtual ~MedraBCAPService();
 
   HRESULT Connect();
