@@ -28,6 +28,7 @@ public:
 
     // Robot command constants
     static constexpr int BCAP_ROBOT_EXECUTE_ARGS = 3;
+    static constexpr int ARM_GROUP = 0;
 
     // Constructor and destructor
     MedraDensoRobot(const std::string& name, const int* mode, const std::string& ip_address);
@@ -44,7 +45,7 @@ public:
 private:
 
     BCAPService_Ptr _bcap_service;
-    Handle _handle;
+    Handle _controller_handle;
 
     std::string m_name;
     const int * m_mode;

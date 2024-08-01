@@ -6,6 +6,10 @@ the trajectory buffer is not populated on time.
 We built these python bindings around the C driver to overcome this issue.
 
 # Usage
+0. Denso's BCAP C library assumes linux. To develop on Mac, use a Linux Docker image
+Recommend setting up a VSCode Dev container with Ubuntu.
+https://code.visualstudio.com/docs/devcontainers/tutorial
+
 1. Install pybind and CMake
 https://pybind11.readthedocs.io/en/stable/installing.html
 https://cgold.readthedocs.io/en/latest/first-step/installation.html

@@ -87,11 +87,12 @@ HRESULT MedraDensoRobot::ControllerConnect()
     if (FAILED(hr))
         return hr;
 
-    _handle = vntRet->ulVal;
+    _controller_handle = vntRet->ulVal;
 
     return hr;
 }
 
+// Based on DensoRobot::ExecTakeArm
 HRESULT MedraDensoRobot::ExecTakeArm()
 {
   int argc;
@@ -108,7 +109,7 @@ HRESULT MedraDensoRobot::ExecTakeArm()
     switch (argc) {
       case 0:
         vntTmp->vt = VT_UI4;
-        vntTmp->ulVal = m_vecHandle[DensoBase::SRV_ACT];
+        vntTmp->ulVal = _controller_handle;
         break;
       case 1:
         vntTmp->vt = VT_BSTR;
@@ -118,7 +119,7 @@ HRESULT MedraDensoRobot::ExecTakeArm()
         vntTmp->vt = (VT_ARRAY | VT_I4);
         vntTmp->parray = SafeArrayCreateVector(VT_I4, 0, 2);
         SafeArrayAccessData(vntTmp->parray, (void**)&pval);
-        pval[0] = m_ArmGroup;  // Arm group
+        pval[0] = ARM_GROUP;  // Arm group
         pval[1] = 1L;          // Keep
         SafeArrayUnaccessData(vntTmp->parray);
         break;
@@ -127,9 +128,10 @@ HRESULT MedraDensoRobot::ExecTakeArm()
     vntArgs.push_back(*vntTmp.get());
   }
 
-  return m_vecService[DensoBase::SRV_ACT]->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
 }
 
+// DensoRobot::ExecGiveArm
 HRESULT MedraDensoRobot::ExecGiveArm()
 {
   int argc;
@@ -145,7 +147,7 @@ HRESULT MedraDensoRobot::ExecGiveArm()
     switch (argc) {
       case 0:
         vntTmp->vt = VT_UI4;
-        vntTmp->ulVal = m_vecHandle[DensoBase::SRV_ACT];
+        vntTmp->ulVal = _controller_handle;
         break;
       case 1:
         vntTmp->vt = VT_BSTR;
@@ -156,7 +158,9 @@ HRESULT MedraDensoRobot::ExecGiveArm()
     vntArgs.push_back(*vntTmp.get());
   }
 
-  return m_vecService[DensoBase::SRV_ACT]->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
 }
+
+
 
 }  // namespace medra_denso_robot
