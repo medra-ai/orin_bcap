@@ -54,7 +54,7 @@ public:
     BCAP_HRESULT bCapRobotMove(const char* pose, const char* option);
     BCAP_HRESULT bCapMotor(bool command);
     BCAP_HRESULT bCapSlvChangeMode(const char* mode);
-    // BCAP_HRESULT bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
+    BCAP_HRESULT bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
     BCAP_HRESULT SetExtSpeed(const char* speed);
 
     // high level commands
