@@ -141,47 +141,51 @@ BCAP_HRESULT DensoController::SetExtSpeed(const char* speed) {
 
 ////////////////////////////// High Level Commands //////////////////////////////
 
-// void DensoController::bCapSlvFollowTraj(TOPP::Trajectory& traj, std::vector<BCAP_VARIANT>& encoderlog, int sleeptime){
-//     // move to initial pose first
-//     std::vector<double> q(traj.dimension);
-//     traj.Eval(0, q);
-//     const char* command = CommandFromVector(q);
+int DensoController::executeServoTrajectory(RobotTrajectory& traj)
+{
+    BCAP_HRESULT hr;
+    long lResult;
 
-//     BCAP_HRESULT hr;
-//     hr = SetExtSpeed("100");
-//     std::cout << "\n\033[1;33mMoving to the initial pose...\033[0m\n\n";
-//     bCapRobotMove(command, "Speed = 25");
-//     sleep(sleeptime);
+    hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", &lResult);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to get arm control authority." << std::endl;
+        return 1;
+    }
 
-//     // enable control logging
-//     hr = bCapRobotExecute("ClearLog", ""); // enable control logging
+    // enter slave mode: mode 2 J-Type
+    hr = bCapSlvChangeMode("514");
+    if (FAILED(hr)) {
+        std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
+        return 1;
+    }
 
-//     // enter slave mode: mode 1 J-Type
-//     hr = bCapSlvChangeMode("258");
+    BCAP_VARIANT vntPose, vntReturn;
+    for (size_t i = 0; i < traj.size(); i++) {
+        const auto& joint_position = traj.trajectory[i];
+        vntPose = VNTFromRadVector(joint_position);
+        hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", &vntPose, &vntReturn);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to execute b-CAP slave move, index "
+                << i << " of " << traj.size() << std::endl;
+            return 1;
+        }
+    }
 
-//     double s = 0.0;
-//     BCAP_VARIANT vntPose, vntReturn;
-//     struct timespec tic, toc;
-//     encoderlog.resize(0);
+    // exit slave mode
+    hr = bCapSlvChangeMode("0");
+    if (FAILED(hr)) {
+        std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
+        return 1;
+    }
 
-//     while (s < traj.duration) {
-//         clock_gettime(CLOCK_MONOTONIC, &tic);
-//         traj.Eval(s, q);
-//         vntPose = VNTFromRadVector(q);
-//         hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", &vntPose, &vntReturn);
-//         // collect encoder log
-//         encoderlog.push_back(vntReturn);
-//         clock_gettime(CLOCK_MONOTONIC, &toc);
-//         // set time increment based on actual used time
-//         s += (toc.tv_sec - tic.tv_sec) + (toc.tv_nsec - tic.tv_nsec)/nSEC_PER_SECOND;
-//     }
+    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to give arm control authority." << std::endl;
+        return 1;
+    }
 
-//     // exit slave mode
-//     hr = bCapSlvChangeMode("0");
-
-//     // stop control logging
-//     hr = bCapRobotExecute("StopLog", "");
-// }
+    return 0;
+}
 
 void DensoController::bCapEnterProcess(){
     BCAP_HRESULT hr;

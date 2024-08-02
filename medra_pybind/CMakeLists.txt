@@ -11,7 +11,7 @@ set(SOURCES
     src/bindings.cpp
     src/b-Cap.c
     src/DensoController.cpp
-    src/test_slave_move.cpp
+    tests/test_slave_move.cpp
     )
 
 # Cmake version policy
@@ -38,7 +38,7 @@ pybind11_add_module(${MODULE_NAME} ${SOURCES})
 # Include the bCAP headers
 # target_include_directories(${MODULE_NAME} PRIVATE ${EXTERNAL_INCLUDE_PATH})
 
-add_executable(test_slave_move src/test_slave_move.cpp src/b-Cap.c src/DensoController.cpp)
+add_executable(test_slave_move tests/test_slave_move.cpp src/b-Cap.c src/DensoController.cpp)
 # target_include_directories(test_slave_move PRIVATE ${EXTERNAL_INCLUDE_PATH})
 # target_link_libraries(test_slave_move PRIVATE ${EXTERNAL_LIB})
 

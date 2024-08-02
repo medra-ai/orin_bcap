@@ -1,4 +1,5 @@
 #include "b-Cap.h"
+#include "util.hpp"
 #include <exception>
 #include <string>
 #include <cassert>
@@ -59,6 +60,7 @@ public:
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();
+    int executeServoTrajectory(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
