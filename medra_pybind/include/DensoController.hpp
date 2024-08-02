@@ -14,7 +14,7 @@
 #define nSEC_PER_SECOND 1E9
 #define dReal float
 
-namespace DensoController {
+namespace denso_controller {
 
 class bCapException : public std::exception {
 public:
@@ -84,4 +84,4 @@ std::vector<double> VRad2Deg(std::vector<double> vect0);
 double Rad2Deg(double x);
 double Deg2Rad(double x);
 
-} // end namespace DensoController
+} // close namespace denso_controller

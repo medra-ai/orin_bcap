@@ -1,9 +1,9 @@
-#include "DensoController.h"
+#include "DensoController.hpp"
 #include <iostream>
 #include <math.h>
 #include <time.h>
 
-namespace DensoController {
+namespace denso_controller {
 
 DensoController::DensoController(const char* server_ip_address0, int server_port_num0) {
     server_ip_address = server_ip_address0;
@@ -322,4 +322,4 @@ double Deg2Rad(double x) {
     }
 }
 
-} //
+} // close namespace denso_controller

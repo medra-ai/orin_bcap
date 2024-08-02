@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(medra_pybind)
+project(denso_pybind)
 
 message ("CMake Compiler: " ${CMAKE_CXX_COMPILER})
 message ("CMake Compiler ID: " ${CMAKE_CXX_COMPILER_ID})
@@ -8,7 +8,7 @@ message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 # Set the names and sources of the module
 set(MODULE_NAME denso_pybind)
 set(SOURCES 
-    # src/bindings.cpp
+    src/bindings.cpp
     src/b-Cap.c
     src/DensoController.cpp
     src/test_slave_move.cpp
