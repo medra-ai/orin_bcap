@@ -89,7 +89,7 @@ PYBIND11_MODULE(denso_pybind, m) {
     .def("bCapRobotMove", &DensoController::bCapRobotMove)
     .def("bCapMotor", &DensoController::bCapMotor)
     .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode)
-    .def("bCapSlvMove", &DensoController::bCapSlvMove)
+//     .def("bCapSlvMove", &DensoController::bCapSlvMove)
     .def("SetExtSpeed", &DensoController::SetExtSpeed)
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess)
     .def("bCapExitProcess", &DensoController::bCapExitProcess)
