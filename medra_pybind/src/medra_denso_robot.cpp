@@ -55,7 +55,7 @@ MedraDensoRobot::MedraDensoRobot(
   BCAPService_Ptr service = std::make_shared<medra_bcap_service::MedraBCAPService>(m_addr, port, connect_timeout);
   service->put_Type("tcp");
   if (FAILED(service->Connect())) {
-    std::cerr << "Failed to connect to b-CAP service" << std::endl;
+    std::cout << "Failed to connect to b-CAP service" << std::endl;
     throw std::runtime_error("Failed to connect to b-CAP service");
   }
 }
@@ -95,6 +95,44 @@ HRESULT MedraDensoRobot::ControllerConnect()
     _controller_handle = vntRet->ulVal;
 
     return hr;
+}
+
+HRESULT MedraDensoRobot::Motor(bool on)
+{
+  int argc;
+  VARIANT_Vec vntArgs;
+  VARIANT_Ptr vntRet(new VARIANT());
+  int32_t * pval;
+
+  VariantInit(vntRet.get());
+
+  for (argc = 0; argc < BCAP_ROBOT_EXECUTE_ARGS; argc++) {
+    VARIANT_Ptr vntTmp(new VARIANT());
+    VariantInit(vntTmp.get());
+
+    switch (argc) {
+      case 0:
+        vntTmp->vt = VT_UI4;
+        vntTmp->ulVal = _controller_handle;
+        break;
+      case 1:
+        vntTmp->vt = VT_BSTR;
+        vntTmp->bstrVal = SysAllocString(L"Motor");
+        break;
+      case 2:
+        vntTmp->vt = (VT_ARRAY | VT_I4);
+        vntTmp->parray = SafeArrayCreateVector(VT_I4, 0, 2);
+        SafeArrayAccessData(vntTmp->parray, (void**)&pval);
+        pval[0] = on ? 1 : 0;
+        pval[1] = 0;
+        SafeArrayUnaccessData(vntTmp->parray);
+        break;
+    }
+
+    vntArgs.push_back(*vntTmp.get());
+  }
+
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
 }
 
 // Based on DensoRobot::ExecTakeArm
@@ -272,12 +310,12 @@ HRESULT MedraDensoRobot::ChangeMode(int mode)
     if (mode != 0) {
       hr = ExecSlaveMode("slvSendFormat", m_sendfmt);
       if (FAILED(hr)) {
-        std::cerr << "Invalid argument value send_format = 0x%x" << m_sendfmt << std::endl;
+        std::cout << "Invalid argument value send_format = 0x%x" << m_sendfmt << std::endl;
         return hr;
       }
       hr = ExecSlaveMode("slvRecvFormat", m_recvfmt, m_tsfmt);
       if (FAILED(hr)) {
-        std::cerr << "Invalid argument value recv_format = 0x%x" << m_recvfmt << std::endl;
+        std::cout << "Invalid argument value recv_format = 0x%x" << m_recvfmt << std::endl;
         return hr;
       }
       hr = ExecTakeArm();
@@ -694,16 +732,17 @@ int main(int argc, char *argv[]) {
   // controller_getrobot
   std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
-
+  std::cout << "Initialized robot service" << std::endl;
+  
+  robot.ControllerConnect();
   std::cout << "Connected to robot" << std::endl;
 
   // TODO: manual reset
-  // TODO: turn on motors
+  // Turn on motors
+  robot.Motor(true);
+
   // TODO: set speed
 
-  robot.ControllerConnect();
-
-  return 0;
   HRESULT result;
   result = robot.ExecTakeArm();
 
@@ -724,17 +763,15 @@ int main(int argc, char *argv[]) {
     goto err_proc;
   }
 
-  for (int i = 0; i < 10; i++) {
-    // add a small increment to each joint
-    for (int j = 0; j < 6; j++) {
-      new_joint_position[j] = new_joint_position[j] + 0.001;
-    }
-    // Use dummy pose because we are controlling in joint mode
-    result = robot.ExecSlaveMove(dummy_pose, new_joint_position);
+  for (int i = 0; i < 100; i++) {
+    // add a small increment to J6
+    new_joint_position[5] = current_joint_position[5] + 0.1;
+    result = robot.ExecSlaveMove(current_joint_position, new_joint_position);
     if (FAILED(result)) {
       error_msg = "Failed to move robot.";
       goto err_proc;
     }
+    current_joint_position = new_joint_position;
   }
 
   // Teardown (destructor)

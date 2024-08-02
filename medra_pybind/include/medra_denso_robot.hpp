@@ -93,6 +93,7 @@ public:
 
     // Controller commands
     HRESULT ControllerConnect();
+    HRESULT Motor(bool on);
 
     // Robot commands
     HRESULT ExecTakeArm();
@@ -102,6 +103,7 @@ public:
     HRESULT ExecSlaveMove(const std::vector<double>& pose, std::vector<double>& joint);
 
     HRESULT ChangeMode(int mode);
+
 private:
     HRESULT ExecSlaveMode(const std::string& name, int32_t format, int32_t option=0);
     
