@@ -75,8 +75,16 @@ PYBIND11_MODULE(denso_pybind, m) {
     .def(py::init<>())
     .def(py::init<const std::string&, int>());
 
+  py::class_<RobotTrajectory>(m, "RobotTrajectory")
+    .def(py::init<>())
+    .def_readonly("dimension", &RobotTrajectory::dimension)
+    .def_readwrite("trajectory", &RobotTrajectory::trajectory)
+    .def("size", &RobotTrajectory::size);
+
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<const char*, int>())
+
+    // Low level commands
     .def("bCapOpen", &DensoController::bCapOpen)
     .def("bCapClose", &DensoController::bCapClose)
     .def("bCapServiceStart", &DensoController::bCapServiceStart)
@@ -91,14 +99,21 @@ PYBIND11_MODULE(denso_pybind, m) {
     .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode)
 //     .def("bCapSlvMove", &DensoController::bCapSlvMove)
     .def("SetExtSpeed", &DensoController::SetExtSpeed)
+
+    // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess)
     .def("bCapExitProcess", &DensoController::bCapExitProcess)
+    .def("executeServoTrajectory", &DensoController::executeServoTrajectory)
+
+    // Utilities
     .def("CommandFromVector", &DensoController::CommandFromVector)
     .def("GetCurJnt", &DensoController::GetCurJnt)
     .def("VectorFromVNT", &DensoController::VectorFromVNT)
     .def("RadVectorFromVNT", &DensoController::RadVectorFromVNT)
     .def("VNTFromVector", &DensoController::VNTFromVector)
     .def("VNTFromRadVector", &DensoController::VNTFromRadVector)
+
+    // Class members
     .def_readonly("server_ip_address", &DensoController::server_ip_address)
     .def_readonly("server_port_num", &DensoController::server_port_num)
     .def_readonly("iSockFD", &DensoController::iSockFD)
