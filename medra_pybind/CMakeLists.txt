@@ -25,7 +25,7 @@ set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
 # Specify path to Orin bCAP library and its headers
-set(EXTERNAL_LIB_PATH /home/vscode/orin_bcap/C)
+set(EXTERNAL_LIB_PATH /home/kchenna/medra/orin_bcap/C)
 set(EXTERNAL_LIB ${EXTERNAL_LIB_PATH}/build/libbcap_client.so)
 set(EXTERNAL_INCLUDE_PATH ${EXTERNAL_LIB_PATH}/include)
 
@@ -38,6 +38,14 @@ target_include_directories(${MODULE_NAME} PRIVATE ${EXTERNAL_INCLUDE_PATH})
 add_executable(medra_denso_robot src/medra_denso_robot.cpp src/medra_bcap_service.cpp)
 target_include_directories(medra_denso_robot PRIVATE ${EXTERNAL_INCLUDE_PATH})
 target_link_libraries(medra_denso_robot PRIVATE ${EXTERNAL_LIB})
+
+# add_executable(test src/test.cpp)
+# target_include_directories(test PRIVATE ${EXTERNAL_INCLUDE_PATH})
+# target_link_libraries(test PRIVATE ${EXTERNAL_LIB})
+
+add_executable(medra_bcap_client src/medra_bcap_client.cpp)
+target_include_directories(medra_bcap_client PRIVATE ${EXTERNAL_INCLUDE_PATH})
+target_link_libraries(medra_bcap_client PRIVATE ${EXTERNAL_LIB})
 
 # Link the bCAP library
 target_link_libraries(${MODULE_NAME} PRIVATE ${EXTERNAL_LIB})

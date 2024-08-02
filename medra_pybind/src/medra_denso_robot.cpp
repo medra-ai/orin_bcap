@@ -835,6 +835,8 @@ int main(int argc, char *argv[]) {
   }
   std::cerr << "Set speed to 10%." << std::endl;
 
+  std::cout << "Controller connected" << std::endl;
+
   result = robot.ExecTakeArm();
 
   std::cout << "Taking arm" << std::endl;
