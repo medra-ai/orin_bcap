@@ -93,9 +93,10 @@ public:
 
     // Controller commands
     HRESULT ControllerConnect();
-    HRESULT Motor(bool on);
 
     // Robot commands
+    HRESULT Motor(bool on);
+
     HRESULT ExecTakeArm();
     HRESULT ExecGiveArm();
 
