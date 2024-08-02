@@ -1,3 +1,3 @@
 # Test the denso_pybind module
 
-import denso_pybind as denso
+import build.denso_pybind as denso
