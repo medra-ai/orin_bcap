@@ -55,7 +55,7 @@ MedraDensoRobot::MedraDensoRobot(
   BCAPService_Ptr service = std::make_shared<medra_bcap_service::MedraBCAPService>(m_addr, port, connect_timeout);
   service->put_Type("tcp");
   if (FAILED(service->Connect())) {
-    std::cout << "Failed to connect to b-CAP service" << std::endl;
+    std::cerr << "Failed to connect to b-CAP service" << std::endl;
     throw std::runtime_error("Failed to connect to b-CAP service");
   }
 }
@@ -381,12 +381,12 @@ HRESULT MedraDensoRobot::ChangeMode(int mode)
     if (mode != 0) {
       hr = ExecSlaveMode("slvSendFormat", m_sendfmt);
       if (FAILED(hr)) {
-        std::cout << "Invalid argument value send_format = 0x%x" << m_sendfmt << std::endl;
+        std::cerr << "Invalid argument value send_format = 0x%x" << m_sendfmt << std::endl;
         return hr;
       }
       hr = ExecSlaveMode("slvRecvFormat", m_recvfmt, m_tsfmt);
       if (FAILED(hr)) {
-        std::cout << "Invalid argument value recv_format = 0x%x" << m_recvfmt << std::endl;
+        std::cerr << "Invalid argument value recv_format = 0x%x" << m_recvfmt << std::endl;
         return hr;
       }
       hr = ExecTakeArm();
@@ -406,7 +406,7 @@ HRESULT MedraDensoRobot::ChangeMode(int mode)
       } else {
         _bcap_service->put_Timeout(this->SLVMODE_TIMEOUT_ASYNC);
       }
-      std::cout <<
+      std::cerr <<
         "bcap-slave timeout changed to " << _bcap_service->get_Timeout() << " msec mode: 0x" << mode << std::endl;
       _bcap_service->put_Retry(3);
     }
