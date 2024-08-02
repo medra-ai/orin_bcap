@@ -58,6 +58,10 @@ public:
     int32_t func_id, VARIANT_Vec& vntArgs,
     VARIANT_Ptr& vntRet);
 
+  
+  // Socket parameters
+  int m_fd;
+
 private:
 //   bool CallFunction(
 //   const std::shared_ptr<bcap_service_interfaces::srv::Bcap::Request> request,
@@ -66,9 +70,6 @@ private:
   // Connect parameters
   std::string m_type, m_addr;
   int m_port, m_timeout, m_retry, m_wait;
-
-  // Socket parameters
-  int m_fd;
 
   // ServiceStart parameters
   int m_wdt, m_invoke;

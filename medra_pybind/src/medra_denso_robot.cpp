@@ -58,6 +58,7 @@ MedraDensoRobot::MedraDensoRobot(
     std::cerr << "Failed to connect to b-CAP service" << std::endl;
     throw std::runtime_error("Failed to connect to b-CAP service");
   }
+  std::cout << service->m_fd << std::endl;
 }
 
 // Based on DensoControllerRC9::AddController()
@@ -88,6 +89,7 @@ HRESULT MedraDensoRobot::ControllerConnect()
         vntArgs.push_back(*vntTmp.get());
     }
 
+    std::cout << "Built packet for controller connect" << std::endl;
     hr = _bcap_service->ExecFunction(ID_CONTROLLER_CONNECT, vntArgs, vntRet);
     if (FAILED(hr))
         return hr;
@@ -802,8 +804,9 @@ int main(int argc, char *argv[]) {
   // controller_connect
   // TODO: clear errors
   // controller_getrobot
-  std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
+  std::cout << "Starting robot service at " << ip_address << ":" << port << std::endl;
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
+  std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
   result = robot.ControllerConnect();
   if (FAILED(result)) {
     error_msg = "Failed to connect to robot controller.";

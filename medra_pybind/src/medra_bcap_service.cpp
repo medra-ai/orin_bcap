@@ -42,6 +42,7 @@ HRESULT MedraBCAPService::Connect()
   std::cout << "Connecting to b-CAP service at " << m_type << ":" << m_addr << ":" << m_port << std::endl;
 
   ss1 << m_type << ":" << m_addr << ":" << m_port;
+  std::cout << "m_fd: " << m_fd << std::endl;
   hr = bCap_Open_Client(ss1.str().c_str(), m_timeout, m_retry, &m_fd);
   if(SUCCEEDED(hr)) {
     // ss2 << L",WDT=" << m_wdt << L",InvokeTimeout=" << m_invoke;
@@ -52,6 +53,8 @@ HRESULT MedraBCAPService::Connect()
   else {
     std::cerr << "Failed to connect to b-CAP service" << std::endl;
   }
+  std::cout << "Connected to b-CAP service. hr = " << hr << std::endl;
+  std::cout << "m_fd: " << m_fd << std::endl;
 
   return hr;
 }
@@ -191,6 +194,7 @@ HRESULT MedraBCAPService::ExecFunction(
     switch(func_id) {
       // Controller
       case ID_CONTROLLER_CONNECT:
+        std::cout << "ID_CONTROLLER_CONNECT" << std::endl;
         vntRet->vt = VT_UI4;
         hr = bCap_ControllerConnect(
           m_fd, vntArgs.at(0).bstrVal, vntArgs.at(1).bstrVal, vntArgs.at(2).bstrVal,
