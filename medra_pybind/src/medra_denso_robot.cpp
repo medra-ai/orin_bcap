@@ -789,6 +789,7 @@ int main(int argc, char *argv[]) {
   const std::vector<double> dummy_joint_position = {1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0};
   std::vector<double> current_joint_position = dummy_joint_position;
   std::vector<double> new_joint_position = dummy_joint_position;
+  HRESULT result;
 
   // Setup
   const std::string ip_address = "192.168.0.1";
@@ -803,18 +804,37 @@ int main(int argc, char *argv[]) {
   // controller_getrobot
   std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
-  robot.ControllerConnect();
+  result = robot.ControllerConnect();
+  if (FAILED(result)) {
+    error_msg = "Failed to connect to robot controller.";
+    goto err_proc;
+  }
+  std::cerr << "Connected to robot controller." << std::endl;
 
   // Manual reset
-  robot.ManualReset();
+  result = robot.ManualReset();
+  if (FAILED(result)) {
+    error_msg = "Failed to reset robot.";
+    goto err_proc;
+  }
+  std::cerr << "Reset robot." << std::endl;
 
   // Turn on motors
-  robot.Motor(true);
+  result = robot.Motor(true);
+  if (FAILED(result)) {
+    error_msg = "Failed to turn on motors.";
+    goto err_proc;
+  }
+  std::cerr << "Turned on motors." << std::endl;
 
   // Set speed
-  robot.ExtSpeed(10.0, 10.0, 10.0);
+  result = robot.ExtSpeed(10.0, 10.0, 10.0);
+  if (FAILED(result)) {
+    error_msg = "Failed to set speed.";
+    goto err_proc;
+  }
+  std::cerr << "Set speed to 10%." << std::endl;
 
-  HRESULT result;
   result = robot.ExecTakeArm();
 
   std::cout << "Taking arm" << std::endl;
@@ -822,9 +842,14 @@ int main(int argc, char *argv[]) {
     error_msg = "Failed to take arm.";
     goto err_proc;
   }
+  std::cerr << "Took arm." << std::endl;
 
   // TODO: turn on slave mode
   result = robot.ChangeMode(mode);
+  if (FAILED(result)) {
+    error_msg = "Failed to change mode.";
+    goto err_proc;
+  }
 
   // move
   current_joint_position = dummy_joint_position;
