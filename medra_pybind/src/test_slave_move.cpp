@@ -5,6 +5,18 @@
 #include <iostream>
 #include <unistd.h>
 
+// start realtime headers
+
+#include <iostream>
+#include <sched.h>
+#include <sys/resource.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+
+/// end realtime headers
+
+
 #define SERVER_IP_ADDRESS    "192.168.0.1"
 #define SERVER_PORT_NUM      5007
 
@@ -15,6 +27,28 @@
 #define AMPLITUDE  1
 
 int main(){
+
+    // start setup realtime
+
+    // Set process priority (nice value)
+    // int priority = -175;
+    // int result = setpriority(PRIO_PROCESS, 0, priority);
+    // if (result == -1) {
+    //     std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
+    //     return 1;
+    // }
+
+    // // Set scheduler to FIFO
+    // struct sched_param param;
+    // param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    // result = sched_setscheduler(0, SCHED_FIFO, &param);
+    // if (result == -1) {
+    //     std::cerr << "Failed to set scheduler: " << strerror(errno) << std::endl;
+    //     return 1;
+    // }
+
+    // end setup realtime
+
 
     int iSockFD;
     uint32_t lResult;
