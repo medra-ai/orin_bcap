@@ -97,6 +97,38 @@ HRESULT MedraDensoRobot::ControllerConnect()
     return hr;
 }
 
+
+HRESULT MedraDensoRobot::ManualReset()
+{
+    static const std::string commandName = "ManualReset";
+    HRESULT hr = E_FAIL;
+    int argc;
+
+    std::stringstream ss;
+    std::string strTmp;
+    VARIANT_Ptr vntRet(new VARIANT());
+    VARIANT_Vec vntArgs;
+
+    VariantInit(vntRet.get());
+
+    for (argc = 0; argc < BCAP_CONTROLLER_CONNECT_ARGS; argc++)
+    {
+        VARIANT_Ptr vntTmp(new VARIANT());
+        VariantInit(vntTmp.get());
+
+        vntTmp->vt = VT_BSTR;
+        strTmp = commandName;
+
+        vntTmp->bstrVal = ConvertStringToBSTR(strTmp);
+
+        vntArgs.push_back(*vntTmp.get());
+    }
+
+    return _bcap_service->ExecFunction(ID_CONTROLLER_CONNECT, vntArgs, vntRet);
+}
+
+
+
 HRESULT MedraDensoRobot::Motor(bool on)
 {
   int argc;
@@ -773,7 +805,9 @@ int main(int argc, char *argv[]) {
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
   robot.ControllerConnect();
 
-  // TODO: manual reset
+  // Manual reset
+  robot.ManualReset();
+
   // Turn on motors
   robot.Motor(true);
 

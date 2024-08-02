@@ -93,6 +93,7 @@ public:
 
     // Controller commands
     HRESULT ControllerConnect();
+    HRESULT ManualReset();
 
     // Robot commands
     HRESULT Motor(bool on);
