@@ -1,10 +1,10 @@
 #include <vector>
 #include <cstddef>
 
-const int _DOF = 6;
+const size_t _DOF = 6;
 
 struct RobotTrajectory {
-  const int dimension = _DOF;
+  const size_t dimension = _DOF;
   std::vector<std::vector<double>> trajectory;
 
   size_t size() const {

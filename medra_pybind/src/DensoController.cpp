@@ -1,3 +1,4 @@
+#include "b-Cap.h"
 #include "DensoController.hpp"
 #include <iostream>
 #include <math.h>
@@ -130,6 +131,15 @@ BCAP_HRESULT DensoController::bCapSlvChangeMode(const char* mode) {
     return hr;
 }
 
+BCAP_HRESULT DensoController::bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result) {
+    BCAP_HRESULT hr;
+    hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to execute b-CAP slave move.\n";
+    }
+    return hr;
+}
+
 BCAP_HRESULT DensoController::SetExtSpeed(const char* speed) {
     BCAP_HRESULT hr;
     hr = bCapRobotExecute("ExtSpeed", speed);
@@ -146,7 +156,7 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
     BCAP_HRESULT hr;
     long lResult;
 
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", &lResult);
+    hr = bCapRobotExecute("TakeArm", "");
     if (FAILED(hr)) {
         std::cerr << "Failed to get arm control authority." << std::endl;
         return 1;
@@ -163,7 +173,7 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
     for (size_t i = 0; i < traj.size(); i++) {
         const auto& joint_position = traj.trajectory[i];
         vntPose = VNTFromRadVector(joint_position);
-        hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", &vntPose, &vntReturn);
+        hr = bCapSlvMove(&vntPose, &vntReturn);
         if (FAILED(hr)) {
             std::cerr << "Failed to execute b-CAP slave move, index "
                 << i << " of " << traj.size() << std::endl;
