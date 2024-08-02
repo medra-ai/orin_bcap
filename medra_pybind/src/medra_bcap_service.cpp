@@ -39,13 +39,18 @@ HRESULT MedraBCAPService::Connect()
   std::stringstream  ss1;
   std::wstringstream ss2;
 
+  std::cout << "Connecting to b-CAP service at " << m_type << ":" << m_addr << ":" << m_port << std::endl;
+
   ss1 << m_type << ":" << m_addr << ":" << m_port;
   hr = bCap_Open_Client(ss1.str().c_str(), m_timeout, m_retry, &m_fd);
   if(SUCCEEDED(hr)) {
-    ss2 << L",WDT=" << m_wdt << L",InvokeTimeout=" << m_invoke;
-    BSTR bstrOption = SysAllocString(ss2.str().c_str());
+    // ss2 << L",WDT=" << m_wdt << L",InvokeTimeout=" << m_invoke;
+    BSTR bstrOption = SysAllocString(L"");
     hr = bCap_ServiceStart(m_fd, bstrOption);
     SysFreeString(bstrOption);
+  }
+  else {
+    std::cerr << "Failed to connect to b-CAP service" << std::endl;
   }
 
   return hr;

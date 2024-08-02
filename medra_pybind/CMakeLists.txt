@@ -35,6 +35,10 @@ pybind11_add_module(${MODULE_NAME} ${SOURCES})
 # Include the bCAP headers
 target_include_directories(${MODULE_NAME} PRIVATE ${EXTERNAL_INCLUDE_PATH})
 
+add_executable(medra_denso_robot src/medra_denso_robot.cpp src/medra_bcap_service.cpp)
+target_include_directories(medra_denso_robot PRIVATE ${EXTERNAL_INCLUDE_PATH})
+target_link_libraries(medra_denso_robot PRIVATE ${EXTERNAL_LIB})
+
 # Link the bCAP library
 target_link_libraries(${MODULE_NAME} PRIVATE ${EXTERNAL_LIB})
 

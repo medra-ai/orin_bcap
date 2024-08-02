@@ -54,7 +54,10 @@ MedraDensoRobot::MedraDensoRobot(
 {
   BCAPService_Ptr service = std::make_shared<medra_bcap_service::MedraBCAPService>(m_addr, port, connect_timeout);
   service->put_Type("tcp");
-  service->Connect();
+  if (FAILED(service->Connect())) {
+    std::cerr << "Failed to connect to b-CAP service" << std::endl;
+    throw std::runtime_error("Failed to connect to b-CAP service");
+  }
 }
 
 // Based on DensoControllerRC9::AddController()
@@ -680,6 +683,7 @@ int main(int argc, char *argv[]) {
 
   // Setup
   const std::string ip_address = "192.168.0.1";
+  // const std::string ip_address = "10.55.2.26";
   const int port = 5007;
   const int connect_timeout = 2000;
   const int mode = 0x202;
@@ -688,14 +692,22 @@ int main(int argc, char *argv[]) {
   // controller_connect
   // TODO: clear errors
   // controller_getrobot
+  std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
+
+  std::cout << "Connected to robot" << std::endl;
 
   // TODO: manual reset
   // TODO: turn on motors
   // TODO: set speed
 
+  robot.ControllerConnect();
+
+  return 0;
   HRESULT result;
   result = robot.ExecTakeArm();
+
+  std::cout << "Taking arm" << std::endl;
   if (FAILED(result)) {
     error_msg = "Failed to take arm.";
     goto err_proc;

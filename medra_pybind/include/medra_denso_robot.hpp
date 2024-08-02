@@ -89,7 +89,7 @@ public:
 
     // Constructor and destructor
     MedraDensoRobot(const std::string & name, const int * mode, const std::string & ip_address, const int port, const int connect_timeout);
-    ~MedraDensoRobot();
+    ~MedraDensoRobot() = default;
 
     // Controller commands
     HRESULT ControllerConnect();
