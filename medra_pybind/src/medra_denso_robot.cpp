@@ -97,6 +97,115 @@ HRESULT MedraDensoRobot::ControllerConnect()
     return hr;
 }
 
+
+HRESULT MedraDensoRobot::ManualReset()
+{
+    static const std::string commandName = "ManualReset";
+    HRESULT hr = E_FAIL;
+    int argc;
+
+    std::stringstream ss;
+    std::string strTmp;
+    VARIANT_Ptr vntRet(new VARIANT());
+    VARIANT_Vec vntArgs;
+
+    VariantInit(vntRet.get());
+
+    for (argc = 0; argc < BCAP_CONTROLLER_CONNECT_ARGS; argc++)
+    {
+        VARIANT_Ptr vntTmp(new VARIANT());
+        VariantInit(vntTmp.get());
+
+        vntTmp->vt = VT_BSTR;
+        strTmp = commandName;
+
+        vntTmp->bstrVal = ConvertStringToBSTR(strTmp);
+
+        vntArgs.push_back(*vntTmp.get());
+    }
+
+    return _bcap_service->ExecFunction(ID_CONTROLLER_CONNECT, vntArgs, vntRet);
+}
+
+
+
+HRESULT MedraDensoRobot::Motor(bool on)
+{
+  int argc;
+  VARIANT_Vec vntArgs;
+  VARIANT_Ptr vntRet(new VARIANT());
+  int32_t * pval;
+
+  VariantInit(vntRet.get());
+
+  for (argc = 0; argc < BCAP_ROBOT_EXECUTE_ARGS; argc++) {
+    VARIANT_Ptr vntTmp(new VARIANT());
+    VariantInit(vntTmp.get());
+
+    switch (argc) {
+      case 0:
+        vntTmp->vt = VT_UI4;
+        vntTmp->ulVal = _controller_handle;
+        break;
+      case 1:
+        vntTmp->vt = VT_BSTR;
+        vntTmp->bstrVal = SysAllocString(L"Motor");
+        break;
+      case 2:
+        vntTmp->vt = (VT_ARRAY | VT_I4);
+        vntTmp->parray = SafeArrayCreateVector(VT_I4, 0, 2);
+        SafeArrayAccessData(vntTmp->parray, (void**)&pval);
+        pval[0] = on ? 1 : 0;
+        pval[1] = 0;
+        SafeArrayUnaccessData(vntTmp->parray);
+        break;
+    }
+
+    vntArgs.push_back(*vntTmp.get());
+  }
+
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
+}
+
+HRESULT MedraDensoRobot::ExtSpeed(float speed, float acceleration, float deceleration)
+{
+  int argc;
+  VARIANT_Vec vntArgs;
+  VARIANT_Ptr vntRet(new VARIANT());
+  int32_t * pval;
+
+  VariantInit(vntRet.get());
+
+  for (argc = 0; argc < BCAP_ROBOT_EXECUTE_ARGS; argc++) {
+    VARIANT_Ptr vntTmp(new VARIANT());
+    VariantInit(vntTmp.get());
+
+    switch (argc) {
+      case 0:
+        vntTmp->vt = VT_UI4;
+        vntTmp->ulVal = _controller_handle;
+        break;
+      case 1:
+        vntTmp->vt = VT_BSTR;
+        vntTmp->bstrVal = SysAllocString(L"Motor");
+        break;
+      case 2:
+        vntTmp->vt = (VT_ARRAY | VT_R4);
+        vntTmp->parray = SafeArrayCreateVector(VT_R4, 0, 3);
+        SafeArrayAccessData(vntTmp->parray, (void**)&pval);
+        pval[0] = speed;
+        pval[1] = acceleration;
+        pval[2] = deceleration;
+        SafeArrayUnaccessData(vntTmp->parray);
+        break;
+    }
+
+    vntArgs.push_back(*vntTmp.get());
+  }
+
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
+}
+
 // Based on DensoRobot::ExecTakeArm
 HRESULT MedraDensoRobot::ExecTakeArm()
 {
@@ -297,7 +406,7 @@ HRESULT MedraDensoRobot::ChangeMode(int mode)
       } else {
         _bcap_service->put_Timeout(this->SLVMODE_TIMEOUT_ASYNC);
       }
-      std::cout <<
+      std::cerr <<
         "bcap-slave timeout changed to " << _bcap_service->get_Timeout() << " msec mode: 0x" << mode << std::endl;
       _bcap_service->put_Retry(3);
     }
@@ -680,6 +789,7 @@ int main(int argc, char *argv[]) {
   const std::vector<double> dummy_joint_position = {1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0};
   std::vector<double> current_joint_position = dummy_joint_position;
   std::vector<double> new_joint_position = dummy_joint_position;
+  HRESULT result;
 
   // Setup
   const std::string ip_address = "192.168.0.1";
@@ -694,17 +804,37 @@ int main(int argc, char *argv[]) {
   // controller_getrobot
   std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
+  result = robot.ControllerConnect();
+  if (FAILED(result)) {
+    error_msg = "Failed to connect to robot controller.";
+    goto err_proc;
+  }
+  std::cerr << "Connected to robot controller." << std::endl;
 
-  std::cout << "Connected to robot" << std::endl;
+  // Manual reset
+  result = robot.ManualReset();
+  if (FAILED(result)) {
+    error_msg = "Failed to reset robot.";
+    goto err_proc;
+  }
+  std::cerr << "Reset robot." << std::endl;
 
-  // TODO: manual reset
-  // TODO: turn on motors
-  // TODO: set speed
+  // Turn on motors
+  result = robot.Motor(true);
+  if (FAILED(result)) {
+    error_msg = "Failed to turn on motors.";
+    goto err_proc;
+  }
+  std::cerr << "Turned on motors." << std::endl;
 
-  robot.ControllerConnect();
+  // Set speed
+  result = robot.ExtSpeed(10.0, 10.0, 10.0);
+  if (FAILED(result)) {
+    error_msg = "Failed to set speed.";
+    goto err_proc;
+  }
+  std::cerr << "Set speed to 10%." << std::endl;
 
-  return 0;
-  HRESULT result;
   result = robot.ExecTakeArm();
 
   std::cout << "Taking arm" << std::endl;
@@ -712,9 +842,14 @@ int main(int argc, char *argv[]) {
     error_msg = "Failed to take arm.";
     goto err_proc;
   }
+  std::cerr << "Took arm." << std::endl;
 
   // TODO: turn on slave mode
   result = robot.ChangeMode(mode);
+  if (FAILED(result)) {
+    error_msg = "Failed to change mode.";
+    goto err_proc;
+  }
 
   // move
   current_joint_position = dummy_joint_position;
@@ -724,17 +859,15 @@ int main(int argc, char *argv[]) {
     goto err_proc;
   }
 
-  for (int i = 0; i < 10; i++) {
-    // add a small increment to each joint
-    for (int j = 0; j < 6; j++) {
-      new_joint_position[j] = new_joint_position[j] + 0.001;
-    }
-    // Use dummy pose because we are controlling in joint mode
-    result = robot.ExecSlaveMove(dummy_pose, new_joint_position);
+  for (int i = 0; i < 100; i++) {
+    // add a small increment to J6
+    new_joint_position[5] = current_joint_position[5] + 0.1;
+    result = robot.ExecSlaveMove(current_joint_position, new_joint_position);
     if (FAILED(result)) {
       error_msg = "Failed to move robot.";
       goto err_proc;
     }
+    current_joint_position = new_joint_position;
   }
 
   // Teardown (destructor)
