@@ -96,6 +96,7 @@ public:
 
     // Robot commands
     HRESULT Motor(bool on);
+    HRESULT ExtSpeed(float speed, float acceleration, float deceleration);
 
     HRESULT ExecTakeArm();
     HRESULT ExecGiveArm();

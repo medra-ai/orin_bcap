@@ -135,6 +135,45 @@ HRESULT MedraDensoRobot::Motor(bool on)
   return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
 }
 
+HRESULT MedraDensoRobot::ExtSpeed(float speed, float acceleration, float deceleration)
+{
+  int argc;
+  VARIANT_Vec vntArgs;
+  VARIANT_Ptr vntRet(new VARIANT());
+  int32_t * pval;
+
+  VariantInit(vntRet.get());
+
+  for (argc = 0; argc < BCAP_ROBOT_EXECUTE_ARGS; argc++) {
+    VARIANT_Ptr vntTmp(new VARIANT());
+    VariantInit(vntTmp.get());
+
+    switch (argc) {
+      case 0:
+        vntTmp->vt = VT_UI4;
+        vntTmp->ulVal = _controller_handle;
+        break;
+      case 1:
+        vntTmp->vt = VT_BSTR;
+        vntTmp->bstrVal = SysAllocString(L"Motor");
+        break;
+      case 2:
+        vntTmp->vt = (VT_ARRAY | VT_R4);
+        vntTmp->parray = SafeArrayCreateVector(VT_R4, 0, 3);
+        SafeArrayAccessData(vntTmp->parray, (void**)&pval);
+        pval[0] = speed;
+        pval[1] = acceleration;
+        pval[2] = deceleration;
+        SafeArrayUnaccessData(vntTmp->parray);
+        break;
+    }
+
+    vntArgs.push_back(*vntTmp.get());
+  }
+
+  return _bcap_service->ExecFunction(ID_ROBOT_EXECUTE, vntArgs, vntRet);
+}
+
 // Based on DensoRobot::ExecTakeArm
 HRESULT MedraDensoRobot::ExecTakeArm()
 {
@@ -732,16 +771,14 @@ int main(int argc, char *argv[]) {
   // controller_getrobot
   std::cout << "Connecting to robot at " << ip_address << ":" << port << std::endl;
   medra_denso_robot::MedraDensoRobot robot("", &mode, ip_address, port, connect_timeout);
-  std::cout << "Initialized robot service" << std::endl;
-  
   robot.ControllerConnect();
-  std::cout << "Connected to robot" << std::endl;
 
   // TODO: manual reset
   // Turn on motors
   robot.Motor(true);
 
-  // TODO: set speed
+  // Set speed
+  robot.ExtSpeed(10.0, 10.0, 10.0);
 
   HRESULT result;
   result = robot.ExecTakeArm();
