@@ -52,4 +52,9 @@ add_custom_target(generate_stub ALL
 )
 
 # Install the module
-install(TARGETS ${MODULE_NAME} DESTINATION .)
+install(TARGETS ${MODULE_NAME} DESTINATION "${MODULE_NAME}")
+install(DIRECTORY
+    $<TARGET_FILE_DIR:${MODULE_NAME}>/
+    DESTINATION ${MODULE_NAME}
+    FILES_MATCHING REGEX "\.pyi$"
+)
