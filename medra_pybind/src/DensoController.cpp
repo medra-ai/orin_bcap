@@ -162,7 +162,7 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
         std::cerr << "Failed to get arm control authority." << std::endl;
         return 1;
     }
-    std::cout << "take arm done" << std::endl;
+    std::cout << "Take arm done" << std::endl;
 
     // enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
@@ -170,7 +170,7 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
         return 1;
     }
-    std::cout << "change to slvmove" << std::endl;
+    std::cout << "Slave mode ON" << std::endl;
 
     BCAP_VARIANT vntPose, vntReturn;
     for (size_t i = 0; i < traj.size(); i++) {
@@ -184,7 +184,7 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
             return 1;
         }
     }
-    std::cout << "done exec traj" << std::endl;
+    std::cout << "Exec traj done" << std::endl;
     // exit slave mode
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
@@ -192,14 +192,14 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
         return 1;
     }
     
-    std::cout << "slv mode off" << std::endl;
+    std::cout << "Slave mode OFF" << std::endl;
 
     hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
     if (FAILED(hr)) {
         std::cerr << "Failed to give arm control authority." << std::endl;
         return 1;
     }
-    std::cout << "give arm" << std::endl;
+    std::cout << "Give arm done" << std::endl;
 
     return 0;
 }
@@ -210,9 +210,9 @@ void DensoController::bCapEnterProcess(){
     bCapOpen();
     bCapServiceStart();
     bCapControllerConnect();
-    std::cout << "connected to controller" << std::endl;
+    std::cout << "Connected to controller" << std::endl;
     bCapGetRobot();
-    std::cout << "connected to robot handle" << std::endl;
+    std::cout << "Obtained robot handle" << std::endl;
 
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
