@@ -254,6 +254,7 @@ typedef union tagCY
 
 #if (!defined(_TIME_H) && (!defined(_INC_WCHAR)))
 #include <time.h>
+#include <cstdint>
 #endif
 
 typedef time_t DATE;

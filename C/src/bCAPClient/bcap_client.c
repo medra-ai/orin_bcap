@@ -612,6 +612,7 @@ HRESULT
 bCap_ControllerConnect(int fd, BSTR bstrName, BSTR bstrProvider,
     BSTR bstrMachine, BSTR bstrOption, uint32_t *hController)
 {
+  std::cout << "fd: " << fd << std::endl;
   char format[] = "8,8,8,8:3";
   if (hController == NULL)
     return E_INVALIDARG;

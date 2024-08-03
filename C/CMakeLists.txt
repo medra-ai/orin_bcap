@@ -66,7 +66,8 @@ else(MSVC) # Not use visual studio
   message (STATUS "_USE_LINUX_API=${_USE_LINUX_API}")
 endif(MSVC)
 
-option (BUILD_SHARED_LIBS "Build as a shared library" OFF)
+# cmake .. -DBUILD_SHARED_LIBS=ON
+option (BUILD_SHARED_LIBS "Build as a shared library" ON)
 
 message (STATUS "_DN_USE_VARIANT_API=${_DN_USE_VARIANT_API}")
 message (STATUS "_DN_USE_BSTR_API=${_DN_USE_BSTR_API}")
