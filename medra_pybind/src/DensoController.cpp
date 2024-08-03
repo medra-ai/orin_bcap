@@ -210,7 +210,7 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     // tool_name = "Tool2";
 
     long lResult;
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", &lResult);
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", tool_name);
     if SUCCEEDED(hr) 
     {			
         hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
@@ -247,6 +247,16 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
                                                << mounting_calib[4] << ", " 
                                                << mounting_calib[5] << ")" << std::endl;
     return mounting_calib;
+}
+
+std::string DensoController::GetErrorDescription(const char* error_code) {
+    char error_description[512]; // What's the max length of error description?
+    BCAP_HRESULT hr = BCAP_S_OK;
+    hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
+    if FAILED(hr) {
+        std::cerr << "Failed to get error description %\n";
+    }
+    return std::string(error_description);
 }
 
 ////////////////////////////// High Level Commands //////////////////////////////

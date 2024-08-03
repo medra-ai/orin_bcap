@@ -103,6 +103,7 @@ PYBIND11_MODULE(denso_pybind, m) {
     .def("SetTcpLoad", &DensoController::SetTcpLoad) // Untested
     .def("ChangeTool", &DensoController::ChangeTool) // Untested, alternative to SetTcpLoad?
     .def("GetMountingCalib", &DensoController::GetMountingCalib) // Untested
+    .def("GetErrorDescription", &DensoController::GetErrorDescription) // Untested
 
     // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess)
