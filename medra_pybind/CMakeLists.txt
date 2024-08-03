@@ -16,6 +16,7 @@ set(SOURCES
 
 # Cmake version policy
 cmake_policy(SET CMP0057 NEW)
+set (CMAKE_CXX_STANDARD 11)
 
 # Include dir
 include_directories(
