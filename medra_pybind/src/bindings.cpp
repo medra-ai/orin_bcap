@@ -99,7 +99,10 @@ PYBIND11_MODULE(denso_pybind, m) {
     .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode)
     .def("bCapSlvMove", &DensoController::bCapSlvMove)
     .def("SetExtSpeed", &DensoController::SetExtSpeed)
-    .def("ManualReset", &DensoController::ManualReset)
+    .def("ManualReset", &DensoController::ManualReset) // Untested
+    .def("SetTcpLoad", &DensoController::SetTcpLoad) // Untested
+    .def("ChangeTool", &DensoController::ChangeTool) // Untested, alternative to SetTcpLoad?
+    .def("GetMountingCalib", &DensoController::GetMountingCalib) // Untested
 
     // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess)

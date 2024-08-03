@@ -151,7 +151,7 @@ BCAP_HRESULT DensoController::SetExtSpeed(const char* speed) {
 }
 
 BCAP_HRESULT DensoController::ManualReset() {
-    BCAP_HRESULT hr;
+    BCAP_HRESULT hr = BCAP_S_OK;
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ManualReset", "", &lResult);
     if SUCCEEDED(hr) {
@@ -160,44 +160,74 @@ BCAP_HRESULT DensoController::ManualReset() {
     return hr;
 }
 
-BCAP_HRESULT DensoController::GetCurrentTool(uint32_t* lhVar) {
-    BCAP_HRESULT hr;
-    hr = bCap_RobotGetVariable(iSockFD, lhRobot,"CURRENT_TOOL", "", lhVar);
-    if SUCCEEDED(hr) {
-        std::cout << "Got current tool %\n";
+BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
+    // Our Robotiq grippers
+    // tool_value = 1; // ROBOTIQ_2F85_GRIPPER_PAYLOAD
+    // tool_value = 2; // ROBOTIQ_2F140_GRIPPER_PAYLOAD
+    long lValue = tool_value;
+    
+    BCAP_HRESULT hr = BCAP_S_OK;
+    hr = bCapRobotExecute("TakeArm", "");
+    if (FAILED(hr)) {
+        std::cerr << "Set TcpLoad failed to take arm control authority." << std::endl;
+        return hr;
+    }
+
+    uint32_t lhVar;
+    hr = bCap_RobotGetVariable(iSockFD, lhRobot, "CURRENT_TOOL", "", &lhVar);   /* Get var handle */
+    if FAILED(hr) {
+        std::cerr << "Set TCP Load failed to get CURRENT_TOOL variable %\n";
+        return hr;
+    }
+
+    hr = bCap_VariablePutValue(iSockFD, lhVar, VT_I4, 1, &lValue);      /* Put Value */
+    if SUCCEEDED(hr){
+        std::cout << "Set TCP Load successful %\n";
+    }
+    else {
+        std::cerr << "Set TCP Load failed to put value %\n";
+    }
+
+    hr = bCap_VariableRelease(iSockFD, lhVar);	
+    if FAILED(hr) {
+        std::cerr << "Set TCP Load failed to release variable %\n";
+    }
+
+    hr = bCapRobotExecute("Givearm", "");
+    if (FAILED(hr)) {
+        std::cerr << "Set TcpLoad failed to give arm control authority." << std::endl;
     }
     return hr;
 }
 
-BCAP_HRESULT DensoController::SetTcpLoad() {
+BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
+    // tool_name = "Tool1";
+    // tool_name = "Tool2";
 
-    // ROBOTIQ_2F140_GRIPPER_PAYLOAD
-    uint32_t tool_value = 2;
-
-    uint32_t hcurrent_tool;
-    BCAP_HRESULT hr_tool = GetCurrentTool(&hcurrent_tool);
-    if FAILED(hr_tool) {
-        std::cout << "Set TCP Load failed to get current tool %\n";
-        return hr_tool;
+    long lResult;
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", &lResult);
+    if SUCCEEDED(hr) 
+    {			
+        hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
+        if SUCCEEDED(hr) {
+            std::cout << "Tool changed to " << tool_name << " %\n";
+        }
+        else {
+            std::cerr << "Failed to change tool %\n";
+        }
     }
+    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
 
-    BCAP_HRESULT hr;
-    uint32_t lArrays = 0; // ?? What is array counter supposed to be ??
-    hr = bCap_VariablePutValue(iSockFD, lhRobot, hcurrent_tool, lArrays, &tool_value);
-    if SUCCEEDED(hr) {
-        std::cout << "Got current tool %\n";
-    }
     return hr;
 }
 
 std::vector<double> DensoController::GetMountingCalib(const char* work_coordinate) {
-
-    BCAP_HRESULT hr;
     double work_def[8]; // Should this be 6?
 
+    BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
     if FAILED(hr) {
-        std::cout << "Failed to get mounting calibration %\n";
+        std::cerr << "Failed to get mounting calibration %\n";
     }
 
     std::vector<double> mounting_calib;
@@ -205,6 +235,12 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
     for (int i = 0; i < 6; i++) {
         mounting_calib.push_back(work_def[i]);
     }
+    std::cout << "Got Mounting Calibration: (" << mounting_calib[0] << ", " 
+                                               << mounting_calib[1] << ", " 
+                                               << mounting_calib[2] << ", " 
+                                               << mounting_calib[3] << ", " 
+                                               << mounting_calib[4] << ", " 
+                                               << mounting_calib[5] << ")" << std::endl;
     return mounting_calib;
 }
 
