@@ -1,0 +1,12 @@
+[project]
+name = "bCAPClient"
+version = "0.1"
+description = "ORIN BCAP Client"
+authors = [{name="DENSO", email="support@denso.ai"}]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
