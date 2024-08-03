@@ -56,7 +56,11 @@ public:
     BCAP_HRESULT bCapSlvChangeMode(const char* mode);
     BCAP_HRESULT bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
     BCAP_HRESULT SetExtSpeed(const char* speed);
-
+    BCAP_HRESULT ManualReset();
+    BCAP_HRESULT GetCurrentTool(uint32_t* lhVar);
+    BCAP_HRESULT SetTcpLoad();
+    std::vector<double> GetMountingCalib(const char* work_coordinate);
+    
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();

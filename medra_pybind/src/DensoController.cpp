@@ -150,6 +150,64 @@ BCAP_HRESULT DensoController::SetExtSpeed(const char* speed) {
     return hr;
 }
 
+BCAP_HRESULT DensoController::ManualReset() {
+    BCAP_HRESULT hr;
+    long lResult;
+    hr = bCap_ControllerExecute(iSockFD, lhController, "ManualReset", "", &lResult);
+    if SUCCEEDED(hr) {
+        std::cout << "Executed Manual Reset %\n";
+    }
+    return hr;
+}
+
+BCAP_HRESULT DensoController::GetCurrentTool(uint32_t* lhVar) {
+    BCAP_HRESULT hr;
+    hr = bCap_RobotGetVariable(iSockFD, lhRobot,"CURRENT_TOOL", "", lhVar);
+    if SUCCEEDED(hr) {
+        std::cout << "Got current tool %\n";
+    }
+    return hr;
+}
+
+BCAP_HRESULT DensoController::SetTcpLoad() {
+
+    // ROBOTIQ_2F140_GRIPPER_PAYLOAD
+    uint32_t tool_value = 2;
+
+    uint32_t hcurrent_tool;
+    BCAP_HRESULT hr_tool = GetCurrentTool(&hcurrent_tool);
+    if FAILED(hr_tool) {
+        std::cout << "Set TCP Load failed to get current tool %\n";
+        return hr_tool;
+    }
+
+    BCAP_HRESULT hr;
+    uint32_t lArrays = 0; // ?? What is array counter supposed to be ??
+    hr = bCap_VariablePutValue(iSockFD, lhRobot, hcurrent_tool, lArrays, &tool_value);
+    if SUCCEEDED(hr) {
+        std::cout << "Got current tool %\n";
+    }
+    return hr;
+}
+
+std::vector<double> DensoController::GetMountingCalib(const char* work_coordinate) {
+
+    BCAP_HRESULT hr;
+    double work_def[8]; // Should this be 6?
+
+    hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
+    if FAILED(hr) {
+        std::cout << "Failed to get mounting calibration %\n";
+    }
+
+    std::vector<double> mounting_calib;
+    mounting_calib.resize(0);
+    for (int i = 0; i < 6; i++) {
+        mounting_calib.push_back(work_def[i]);
+    }
+    return mounting_calib;
+}
+
 ////////////////////////////// High Level Commands //////////////////////////////
 
 int DensoController::executeServoTrajectory(RobotTrajectory& traj)

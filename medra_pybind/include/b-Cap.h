@@ -140,7 +140,7 @@ BCAP_HRESULT    bCap_ControllerExecute2(int iSockFd, uint32_t lhController, cons
 
 /* b-CAP Robot Functions */
 BCAP_HRESULT    bCap_RobotRelease(int iSockFd, uint32_t lhRobot);
-BCAP_HRESULT    bCap_RobotGetVariable(int iSockFd, uint32_t lhRobot, const char *pVarName, const char *pStrOption, uint32_t *lhVarCurJnt);
+BCAP_HRESULT    bCap_RobotGetVariable(int iSockFd, uint32_t lhRobot, const char *pVarName, const char *pStrOption, uint32_t *plhVar);
 BCAP_HRESULT    bCap_RobotExecute(int iSockFd, uint32_t lhRobot, const char *pStrCommand, const char *pStrOption, void *plResult);
 BCAP_HRESULT    bCap_RobotChange(int iSockFd, uint32_t lhRobot, char *pStrCommand);
 BCAP_HRESULT    bCap_RobotMove(int iSockFd, uint32_t lhRobot, long lComp, const char *pStrPose, const char *pStrOption);
