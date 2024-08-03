@@ -6,9 +6,9 @@
 
 namespace denso_controller {
 
-DensoController::DensoController(const char* server_ip_address0, int server_port_num0) {
-    server_ip_address = server_ip_address0;
-    server_port_num = server_port_num0;
+DensoController::DensoController() {
+    server_ip_address = DEFAULT_SERVER_IP_ADDRESS;
+    server_port_num = DEFAULT_SERVER_PORT_NUM;
 }
 
 ////////////////////////////// Low Level Commands //////////////////////////////
@@ -47,6 +47,7 @@ void DensoController::bCapServiceStop() {
 
 void DensoController::bCapControllerConnect() {
     std::cout << "Get controller handle.\n";
+    std::cout << "server ip address: " << server_ip_address << "..." << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
         throw bCapException("bCap_ConrtollerConnect failed.\n");
@@ -161,6 +162,7 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
         std::cerr << "Failed to get arm control authority." << std::endl;
         return 1;
     }
+    std::cout << "take arm done" << std::endl;
 
     // enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
@@ -168,31 +170,36 @@ int DensoController::executeServoTrajectory(RobotTrajectory& traj)
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
         return 1;
     }
+    std::cout << "change to slvmove" << std::endl;
 
     BCAP_VARIANT vntPose, vntReturn;
     for (size_t i = 0; i < traj.size(); i++) {
         const auto& joint_position = traj.trajectory[i];
         vntPose = VNTFromRadVector(joint_position);
         hr = bCapSlvMove(&vntPose, &vntReturn);
+        std::cout << "slvmove " <<  joint_position.at(5) << std::endl;
         if (FAILED(hr)) {
             std::cerr << "Failed to execute b-CAP slave move, index "
                 << i << " of " << traj.size() << std::endl;
             return 1;
         }
     }
-
+    std::cout << "done exec traj" << std::endl;
     // exit slave mode
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
         return 1;
     }
+    
+    std::cout << "slv mode off" << std::endl;
 
     hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
     if (FAILED(hr)) {
         std::cerr << "Failed to give arm control authority." << std::endl;
         return 1;
     }
+    std::cout << "give arm" << std::endl;
 
     return 0;
 }
@@ -203,7 +210,9 @@ void DensoController::bCapEnterProcess(){
     bCapOpen();
     bCapServiceStart();
     bCapControllerConnect();
+    std::cout << "connected to controller" << std::endl;
     bCapGetRobot();
+    std::cout << "connected to robot handle" << std::endl;
 
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);

@@ -25,7 +25,7 @@ int main(){
     double dJnt[8];
     BCAP_VARIANT vntPose, vntReturn;
 
-    denso_controller::DensoController controller = denso_controller::DensoController(SERVER_IP_ADDRESS, SERVER_PORT_NUM);
+    denso_controller::DensoController controller = denso_controller::DensoController();
     controller.bCapEnterProcess();
     controller.SetExtSpeed("100");
 

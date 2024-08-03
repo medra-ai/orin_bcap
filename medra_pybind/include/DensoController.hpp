@@ -39,7 +39,7 @@ private:
 class DensoController {
 
 public:
-    DensoController(const char* server_ip_address0 = DEFAULT_SERVER_IP_ADDRESS, int server_port_num0 = DEFAULT_SERVER_PORT_NUM);
+    DensoController();
 
     // low level commands
     void bCapOpen();

@@ -82,7 +82,7 @@ PYBIND11_MODULE(denso_pybind, m) {
     .def("size", &RobotTrajectory::size);
 
   py::class_<DensoController>(m, "DensoController")
-    .def(py::init<const char*, int>())
+    .def(py::init<>())
 
     // Low level commands
     .def("bCapOpen", &DensoController::bCapOpen)
