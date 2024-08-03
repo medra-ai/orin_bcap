@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(denso_pybind)
+project(medra_bcap)
 
 message ("CMake Compiler: " ${CMAKE_CXX_COMPILER})
 message ("CMake Compiler ID: " ${CMAKE_CXX_COMPILER_ID})
 message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 
 # Set the names and sources of the module
-set(MODULE_NAME denso_pybind)
+set(MODULE_NAME medra_bcap)
 set(SOURCES 
     src/bindings.cpp
     src/b-Cap.c
@@ -44,6 +44,12 @@ target_include_directories(test_execute_servo_trajectory PRIVATE include)
 
 # Link the bCAP library
 # target_link_libraries(${MODULE_NAME} PRIVATE ${EXTERNAL_LIB})
+
+add_custom_target(generate_stub ALL
+    COMMAND ${Python_EXECUTABLE} "-m" "pybind11_stubgen" "-o${CMAKE_CURRENT_BINARY_DIR}" "${MODULE_NAME}"
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:${MODULE_NAME}>
+    DEPENDS ${MODULE_NAME}
+)
 
 # Install the module
 install(TARGETS ${MODULE_NAME} DESTINATION .)
