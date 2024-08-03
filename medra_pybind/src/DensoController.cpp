@@ -1,3 +1,8 @@
+/**
+ * C++ Wrapper around Denso b-CAP library
+ * Based on https://github.com/quangounet/denso/blob/master/cpp/src/DensoController.cpp
+ */ 
+
 #include "b-Cap.h"
 #include "DensoController.hpp"
 #include <iostream>
