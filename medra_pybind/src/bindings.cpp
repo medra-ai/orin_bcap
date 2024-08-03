@@ -73,7 +73,7 @@ PYBIND11_MODULE(medra_bcap, m) {
 
   py::class_<bCapException>(m, "bCapException")
     .def(py::init<>())
-    .def(py::init<const std::string&, int>());
+    .def(py::init<const std::string&, int>())
     .def("error_code", &bCapException::error_code)
     .def("error_description", &bCapException::error_description);
 
