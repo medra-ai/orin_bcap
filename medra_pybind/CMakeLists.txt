@@ -52,7 +52,11 @@ add_custom_target(generate_stub ALL
 )
 
 # rename the generated .pyi file to __init__.pyi
-file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi ${CMAKE_CURRENT_BINARY_DIR}/__init__.pyi)
+add_custom_target(rename_pyi ALL
+    COMMAND mv ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi ${CMAKE_CURRENT_BINARY_DIR}/__init__.pyi
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:${MODULE_NAME}>
+    DEPENDS generate_stub
+)
 
 
 # Install the module
