@@ -34,6 +34,13 @@ public:
     virtual ~bCapException() throw() {
     }
 
+    int error_code() const {
+        return _errorcode;
+    }
+
+    std::string error_description() const {
+        return _s;
+    }
 
 private:
     std::string _s;

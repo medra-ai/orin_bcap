@@ -74,6 +74,8 @@ PYBIND11_MODULE(denso_pybind, m) {
   py::class_<bCapException>(m, "bCapException")
     .def(py::init<>())
     .def(py::init<const std::string&, int>());
+    .def("error_code", &bCapException::error_code)
+    .def("error_description", &bCapException::error_description);
 
   py::class_<RobotTrajectory>(m, "RobotTrajectory")
     .def(py::init<>())
