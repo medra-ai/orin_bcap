@@ -26,10 +26,8 @@ int main(){
     BCAP_VARIANT vntPose, vntReturn;
 
     denso_controller::DensoController controller = denso_controller::DensoController(SERVER_IP_ADDRESS, SERVER_PORT_NUM);
-    controller.bCapServiceStart();
-    controller.bCapControllerConnect();
-    controller.bCapGetRobot();
-    controller.bCapMotor(true);
+    controller.bCapEnterProcess();
+    controller.SetExtSpeed("100");
 
     // TODO: Add manual reset and clear errors
 
@@ -43,15 +41,22 @@ int main(){
         denso_controller::Deg2Rad(currentPose[4]),
         denso_controller::Deg2Rad(currentPose[5]),
     };
+    std::cout << currentPose[0]
+              << " " << currentPose[1]
+              << " " << currentPose[2]
+              << " " << currentPose[3]
+              << " " << currentPose[4]
+              << " " << currentPose[5] << std::endl;
+
     std::vector<std::vector<double>> trajectory_poses = {currentPose};
-    for (size_t i = 0; i < 100; i++) {
+    for (size_t i = 0; i < 1000; i++) {
         std::vector<double> newPose = {
             currentPose[0],
             currentPose[1],
             currentPose[2],
             currentPose[3],
             currentPose[4],
-            currentPose[5] + 0.001,
+            currentPose[5] + 0.0001,
         };
         trajectory_poses.push_back(newPose);
         currentPose = newPose;

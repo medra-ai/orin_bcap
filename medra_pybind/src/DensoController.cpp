@@ -47,7 +47,7 @@ void DensoController::bCapServiceStop() {
 
 void DensoController::bCapControllerConnect() {
     std::cout << "Get controller handle.\n";
-    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC", server_ip_address, "", &lhController);
+    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
         throw bCapException("bCap_ConrtollerConnect failed.\n");
     }
@@ -205,7 +205,10 @@ void DensoController::bCapEnterProcess(){
     bCapControllerConnect();
     bCapGetRobot();
 
-    hr = bCapRobotExecute("Takearm", "");
+    long lResult;
+    hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
+
+    hr = bCapRobotExecute("TakeArm", "");
     if FAILED(hr) {
         throw bCapException("\033[1;31mFail to get arm control authority.\033[0m\n");
     }
