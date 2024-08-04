@@ -38,7 +38,7 @@ def main():
     # Execute a trajectory
     traj = test_trajectory(curr_joint_angles)
     print("Start Executing trajectory")
-    controller.executeServoTrajectory(traj)
+    controller.ExecuteServoTrajectory(traj)
     print("Finish executing trajectory")
 
     controller.bCapExitProcess()

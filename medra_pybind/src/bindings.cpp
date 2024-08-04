@@ -110,7 +110,9 @@ PYBIND11_MODULE(medra_bcap, m) {
     // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess)
     .def("bCapExitProcess", &DensoController::bCapExitProcess)
-    .def("executeServoTrajectory", &DensoController::executeServoTrajectory)
+    .def("CommandServoJoint", &DensoController::CommandServoJoint)
+    .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory)
+    .def("ExecuteServoTrajectoryReleaseGIL", &DensoController::ExecuteServoTrajectoryReleaseGIL)
 
     // Utilities
     .def("CommandFromVector", &DensoController::CommandFromVector)

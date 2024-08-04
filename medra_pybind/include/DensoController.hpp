@@ -77,7 +77,9 @@ public:
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();
-    int executeServoTrajectory(RobotTrajectory& traj);
+    int CommandServoJoint(const std::vector<double> joint_position);
+    int ExecuteServoTrajectory(RobotTrajectory& traj);
+    int ExecuteServoTrajectoryReleaseGIL(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
