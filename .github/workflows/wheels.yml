@@ -32,10 +32,17 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.11,<3.12"
           CIBW_SKIP: "*-win32 *-musllinux_* *_i686"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: medra_pybind/wheelhouse/
+
+      - if: github.ref == 'refs/heads/main'
+        name: update prerelease tag
+        uses: EndBug/latest-tag@v1.6.1
+        with:
+          ref: "prerelease"
 
   prerelease:
     if: github.ref == 'refs/heads/main'
