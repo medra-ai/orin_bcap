@@ -30,7 +30,7 @@ jobs:
         # to supply options, put them in 'env', like:
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.11,<3.12"
-          CIBW_SKIP: "*-win32 *-musllinux_* *-i686"
+          CIBW_SKIP: "*-win32 *-musllinux_* *_i686"
 
       - uses: actions/upload-artifact@v4
         with:
