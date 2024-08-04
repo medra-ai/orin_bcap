@@ -1,0 +1,13 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11", "pybind11-stubgen", "numpy==1.23.5"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+cmake.build-type = "RelWithDebInfo"
+cmake.verbose = true
+logging.level = "DEBUG"
+build-dir = "build"
+
+[project]
+name = "medra_bcap"
+version = "0.1.0"

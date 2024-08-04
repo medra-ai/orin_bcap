@@ -1,7 +1,7 @@
 # Test the denso_pybind module
 
 import copy
-import build.denso_pybind as denso
+import medra_bcap
 
 import numpy as np
 
@@ -18,14 +18,14 @@ def test_trajectory(curr_joint_angles=[0, 0, 0, 0, 0, 0]):
         wave_traj.append(copy.deepcopy(new_joint_angles))
 
     # print("Test trajectory: ", wave_traj)
-    traj = denso.RobotTrajectory()
+    traj = medra_bcap.RobotTrajectory()
     traj.trajectory = wave_traj
 
     return traj
 
 def main():
     print("Test the denso_pybind module")
-    controller = denso.DensoController()
+    controller = medra_bcap.DensoController()
 
     controller.bCapEnterProcess()
     print("Entered bCap process")

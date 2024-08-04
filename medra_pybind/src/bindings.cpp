@@ -11,7 +11,7 @@
 namespace py = pybind11;
 using namespace denso_controller;
 
-PYBIND11_MODULE(denso_pybind, m) {
+PYBIND11_MODULE(medra_bcap, m) {
   py::enum_<BCAP_HRESULT>(m, "BCAP_HRESULT")
     .value("BCAP_S_OK", BCAP_S_OK)
     .value("BCAP_E_NOTIMPL", BCAP_E_NOTIMPL)
@@ -73,7 +73,7 @@ PYBIND11_MODULE(denso_pybind, m) {
 
   py::class_<bCapException>(m, "bCapException")
     .def(py::init<>())
-    .def(py::init<const std::string&, int>());
+    .def(py::init<const std::string&, int>())
     .def("error_code", &bCapException::error_code)
     .def("error_description", &bCapException::error_description);
 
