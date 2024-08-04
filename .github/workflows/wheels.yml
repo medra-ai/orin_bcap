@@ -4,6 +4,8 @@ on: [push, pull_request]
 
 jobs:
   build_wheels:
+    permissions:
+      contents: write
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,6 +47,8 @@ jobs:
           ref: "prerelease"
 
   prerelease:
+    permissions:
+      contents: write
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
