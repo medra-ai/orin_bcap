@@ -34,7 +34,7 @@ find_package(pybind11 CONFIG REQUIRED)
 
 
 # Add the pybind module
-pybind11_add_module(${MODULE_NAME} ${SOURCES})
+pybind11_add_module(_${MODULE_NAME} ${SOURCES})
 
 # Include the bCAP headers
 # target_include_directories(${MODULE_NAME} PRIVATE ${EXTERNAL_INCLUDE_PATH})
@@ -47,23 +47,23 @@ target_include_directories(test_execute_servo_trajectory PRIVATE include)
 # target_link_libraries(${MODULE_NAME} PRIVATE ${EXTERNAL_LIB})
 
 add_custom_target(generate_stub ALL
-    COMMAND ${Python_EXECUTABLE} "-m" "pybind11_stubgen" "-o${CMAKE_CURRENT_BINARY_DIR}" "${MODULE_NAME}"
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:${MODULE_NAME}>
-    DEPENDS ${MODULE_NAME}
+    COMMAND ${Python_EXECUTABLE} "-m" "pybind11_stubgen" "-o${CMAKE_CURRENT_BINARY_DIR}" "_${MODULE_NAME}"
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:_${MODULE_NAME}>
+    DEPENDS _${MODULE_NAME}
 )
 
 # rename the generated .pyi file to __init__.pyi
 add_custom_target(rename_pyi ALL
-    COMMAND mv ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}.pyi ${CMAKE_CURRENT_BINARY_DIR}/__init__.pyi
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:${MODULE_NAME}>
+    COMMAND mv ${CMAKE_CURRENT_BINARY_DIR}/_${MODULE_NAME}.pyi ${CMAKE_CURRENT_BINARY_DIR}/__init__.pyi
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:_${MODULE_NAME}>
     DEPENDS generate_stub
 )
 
 
 # Install the module
-install(TARGETS ${MODULE_NAME} DESTINATION "${MODULE_NAME}")
+install(TARGETS _${MODULE_NAME} DESTINATION "${MODULE_NAME}")
 install(DIRECTORY
-    $<TARGET_FILE_DIR:${MODULE_NAME}>/
+    $<TARGET_FILE_DIR:_${MODULE_NAME}>/
     DESTINATION ${MODULE_NAME}
     FILES_MATCHING REGEX "\.pyi$"
 )

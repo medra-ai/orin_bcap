@@ -72,7 +72,7 @@ public:
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
     std::vector<double> GetMountingCalib(const char* work_coordinate);
-    std::string GetErrorDescription(const char* error_code);
+    // std::string GetErrorDescription(const char* error_code);
 
     // high level commands
     void bCapEnterProcess();

@@ -250,15 +250,15 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
     return mounting_calib;
 }
 
-std::string DensoController::GetErrorDescription(const char* error_code) {
-    char error_description[512]; // What's the max length of error description?
-    BCAP_HRESULT hr = BCAP_S_OK;
-    hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
-    if FAILED(hr) {
-        std::cerr << "Failed to get error description %\n";
-    }
-    return std::string(error_description);
-}
+// std::string DensoController::GetErrorDescription(const char* error_code) {
+//     char error_description[512]; // What's the max length of error description?
+//     BCAP_HRESULT hr = BCAP_S_OK;
+//     hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
+//     if FAILED(hr) {
+//         std::cerr << "Failed to get error description %\n";
+//     }
+//     return std::string(error_description);
+// }
 
 ////////////////////////////// High Level Commands //////////////////////////////
 
