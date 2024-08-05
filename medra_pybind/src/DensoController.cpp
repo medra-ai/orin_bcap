@@ -9,9 +9,6 @@
 #include <math.h>
 #include <time.h>
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
 
 namespace denso_controller {
 
@@ -389,16 +386,6 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         return 1;
     }
     std::cout << "Give arm done" << std::endl;
-
-    return 0;
-}
-
-int DensoController::ExecuteServoTrajectoryReleaseGIL(RobotTrajectory& traj) {
-    // Release Python GIL before calling ExecuteServoTrajectory
-    py::gil_scoped_release release;
-    ExecuteServoTrajectory(traj);
-    py::gil_scoped_acquire acquire;
-    // Reacquire Python GIL after calling ExecuteServoTrajectory
 
     return 0;
 }

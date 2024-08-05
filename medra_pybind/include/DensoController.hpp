@@ -79,7 +79,6 @@ public:
     void bCapExitProcess();
     int CommandServoJoint(const std::vector<double> joint_position);
     int ExecuteServoTrajectory(RobotTrajectory& traj);
-    int ExecuteServoTrajectoryReleaseGIL(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
