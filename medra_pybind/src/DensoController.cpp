@@ -274,9 +274,20 @@ void DensoController::bCapEnterProcess(){
 
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
+    if FAILED(hr) {
+        bCapExitProcess();
+        throw bCapException("\033[1;31mFail to clear error.\033[0m\n");
+    }
+
+    hr = ManualReset();
+    if FAILED(hr) {
+        bCapExitProcess();
+        throw bCapException("\033[1;31mFail to execute manual reset.\033[0m\n");
+    }
 
     hr = bCapRobotExecute("TakeArm", "");
     if FAILED(hr) {
+        bCapExitProcess();
         throw bCapException("\033[1;31mFail to get arm control authority.\033[0m\n");
     }
 
@@ -337,6 +348,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     BCAP_HRESULT hr;
     long lResult;
 
+    // Acquire arm control authority
     hr = bCapRobotExecute("TakeArm", "");
     if (FAILED(hr)) {
         std::cerr << "Failed to get arm control authority." << std::endl;
@@ -344,7 +356,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     }
     std::cout << "Take arm done" << std::endl;
 
-    // enter slave mode: mode 2 J-Type
+    // Enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
@@ -352,6 +364,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     }
     std::cout << "Slave mode ON" << std::endl;
 
+    // Execute the trajectory
     BCAP_VARIANT vntPose, vntReturn;
     for (size_t i = 0; i < traj.size(); i++) {
         const auto& joint_position = traj.trajectory[i];
@@ -371,15 +384,16 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         std::cout << ")" << std::endl;
     }
     std::cout << "Exec traj done" << std::endl;
-    // exit slave mode
+
+    // Exit slave mode
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
         return 1;
     }
-    
     std::cout << "Slave mode OFF" << std::endl;
 
+    // Release arm control authority
     hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
     if (FAILED(hr)) {
         std::cerr << "Failed to give arm control authority." << std::endl;
