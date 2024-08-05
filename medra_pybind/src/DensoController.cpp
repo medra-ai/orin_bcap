@@ -9,6 +9,7 @@
 #include <math.h>
 #include <time.h>
 
+
 namespace denso_controller {
 
 DensoController::DensoController() {
@@ -261,58 +262,6 @@ std::string DensoController::GetErrorDescription(const char* error_code) {
 
 ////////////////////////////// High Level Commands //////////////////////////////
 
-int DensoController::executeServoTrajectory(RobotTrajectory& traj)
-{
-    BCAP_HRESULT hr;
-    long lResult;
-
-    hr = bCapRobotExecute("TakeArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Failed to get arm control authority." << std::endl;
-        return 1;
-    }
-    std::cout << "Take arm done" << std::endl;
-
-    // enter slave mode: mode 2 J-Type
-    hr = bCapSlvChangeMode("514");
-    if (FAILED(hr)) {
-        std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
-        return 1;
-    }
-    std::cout << "Slave mode ON" << std::endl;
-
-    BCAP_VARIANT vntPose, vntReturn;
-    for (size_t i = 0; i < traj.size(); i++) {
-        const auto& joint_position = traj.trajectory[i];
-        vntPose = VNTFromRadVector(joint_position);
-        hr = bCapSlvMove(&vntPose, &vntReturn);
-        std::cout << "slvmove " <<  joint_position.at(5) << std::endl;
-        if (FAILED(hr)) {
-            std::cerr << "Failed to execute b-CAP slave move, index "
-                << i << " of " << traj.size() << std::endl;
-            return 1;
-        }
-    }
-    std::cout << "Exec traj done" << std::endl;
-    // exit slave mode
-    hr = bCapSlvChangeMode("0");
-    if (FAILED(hr)) {
-        std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
-        return 1;
-    }
-    
-    std::cout << "Slave mode OFF" << std::endl;
-
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
-    if (FAILED(hr)) {
-        std::cerr << "Failed to give arm control authority." << std::endl;
-        return 1;
-    }
-    std::cout << "Give arm done" << std::endl;
-
-    return 0;
-}
-
 void DensoController::bCapEnterProcess(){
     BCAP_HRESULT hr;
 
@@ -356,6 +305,91 @@ void DensoController::bCapExitProcess() {
     bCapServiceStop();
     bCapClose();
 }
+
+/**
+ * Command Servo Joints
+ * Send a SlaveMode move to joint position command to the robot.
+ *
+ * @param joint_position Vector of 8 DOF joint positions in Radians.
+ * @return 0 if successful, 1 otherwise.
+ */
+int DensoController::CommandServoJoint(const std::vector<double> joint_position) {
+    BCAP_HRESULT hr = BCAP_S_OK;
+    BCAP_VARIANT vntPose, vntReturn;
+    vntPose = VNTFromRadVector(joint_position);
+    hr = bCapSlvMove(&vntPose, &vntReturn);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to execute b-CAP slave move";
+        return 1;
+    }
+
+    // Print the joint positions
+    std::cout << "slvmove (";
+    for (int i=0; i<joint_position.size(); ++i)
+        std::cout << joint_position[i] << ' ';
+    std::cout << ")" << std::endl;
+    
+    return 0;
+}
+
+int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
+{
+    BCAP_HRESULT hr;
+    long lResult;
+
+    hr = bCapRobotExecute("TakeArm", "");
+    if (FAILED(hr)) {
+        std::cerr << "Failed to get arm control authority." << std::endl;
+        return 1;
+    }
+    std::cout << "Take arm done" << std::endl;
+
+    // enter slave mode: mode 2 J-Type
+    hr = bCapSlvChangeMode("514");
+    if (FAILED(hr)) {
+        std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
+        return 1;
+    }
+    std::cout << "Slave mode ON" << std::endl;
+
+    BCAP_VARIANT vntPose, vntReturn;
+    for (size_t i = 0; i < traj.size(); i++) {
+        const auto& joint_position = traj.trajectory[i];
+        vntPose = VNTFromRadVector(joint_position);
+        hr = bCapSlvMove(&vntPose, &vntReturn);
+
+        if (FAILED(hr)) {
+            std::cerr << "Failed to execute b-CAP slave move, index "
+                << i << " of " << traj.size() << std::endl;
+            return 1;
+        }
+
+        // Print the joint positions
+        std::cout << "slvmove (";
+        for (int i=0; i<joint_position.size(); ++i)
+            std::cout << joint_position[i] << ' ';
+        std::cout << ")" << std::endl;
+    }
+    std::cout << "Exec traj done" << std::endl;
+    // exit slave mode
+    hr = bCapSlvChangeMode("0");
+    if (FAILED(hr)) {
+        std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
+        return 1;
+    }
+    
+    std::cout << "Slave mode OFF" << std::endl;
+
+    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to give arm control authority." << std::endl;
+        return 1;
+    }
+    std::cout << "Give arm done" << std::endl;
+
+    return 0;
+}
+
 
 ////////////////////////////// Utilities //////////////////////////////
 

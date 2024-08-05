@@ -67,7 +67,7 @@ int main(){
     trajectory.trajectory = trajectory_poses;
 
     // Execute the trajectory
-    controller.executeServoTrajectory(trajectory);
+    controller.ExecuteServoTrajectory(trajectory);
 
     controller.bCapMotor(false);
     controller.bCapReleaseRobot();
