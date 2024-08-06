@@ -82,7 +82,7 @@ public:
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
-    std::vector<double> GetCurJnt();
+    BCAP_HRESULT GetCurJnt(std::vector<double> &jnt);
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);

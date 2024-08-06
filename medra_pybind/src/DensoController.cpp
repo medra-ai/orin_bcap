@@ -446,21 +446,22 @@ const char* DensoController::CommandFromVector(std::vector<double> q) {
     return commandstring.c_str(); // convert string -> const shar*
 }
 
-std::vector<double> DensoController::GetCurJnt() {
+/* Populates jnt with the current joint values in degrees.
+ */
+BCAP_HRESULT DensoController::GetCurJnt(std::vector<double> &jnt) {
     BCAP_HRESULT hr;
     double dJnt[8];
-    std::vector<double> jointvalues;
-    jointvalues.resize(0);
+    jnt.clear();
 
     hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
     if FAILED(hr) {
         std::cout << "\033[1;31mFail to get current joint values.\033[0m\n";
-        return jointvalues;
+        return hr;
     }
     for (int i = 0; i < 8; i++) {
-        jointvalues.push_back(dJnt[i]);
+        jnt.push_back(dJnt[i]);
     }
-    return jointvalues;
+    return hr;
 }
 
 std::vector<double> DensoController::VectorFromVNT(BCAP_VARIANT vnt0) {
