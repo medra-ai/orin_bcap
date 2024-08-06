@@ -9,6 +9,7 @@
 #include <string>
 #include <cassert>
 #include <vector>
+#include <tuple>
 
 #define DEFAULT_SERVER_IP_ADDRESS    "192.168.0.1"
 #define DEFAULT_SERVER_PORT_NUM      5007
@@ -82,7 +83,7 @@ public:
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
-    BCAP_HRESULT GetCurJnt(std::vector<double> &jnt);
+    std::tuple<BCAP_HRESULT, std::vector<double>> GetCurJnt();
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
@@ -94,6 +95,8 @@ public:
     int iSockFD;
     uint32_t lhController;
     uint32_t lhRobot;
+
+    int current_waypoint_index;
 
 };
 

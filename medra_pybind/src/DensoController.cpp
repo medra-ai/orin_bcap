@@ -327,6 +327,7 @@ void DensoController::bCapEnterProcess() {
         bCapExitProcess();
         throw bCapException("\033[1;31mFail to turn motor on.\033[0m\n");
     }
+    current_waypoint_index = 0;
 
 }
 
@@ -398,6 +399,7 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     // Execute the trajectory
     BCAP_VARIANT vntPose, vntReturn;
     for (size_t i = 0; i < traj.size(); i++) {
+        current_waypoint_index = i;
         const auto& joint_position = traj.trajectory[i];
         vntPose = VNTFromRadVector(joint_position);
         hr = bCapSlvMove(&vntPose, &vntReturn);
@@ -450,20 +452,22 @@ const char* DensoController::CommandFromVector(std::vector<double> q) {
 
 /* Populates jnt with the current joint values in degrees.
  */
-BCAP_HRESULT DensoController::GetCurJnt(std::vector<double> &jnt) {
+std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetCurJnt() {
     BCAP_HRESULT hr;
     double dJnt[8];
-    jnt.clear();
+    std::vector<double> jnt(8);
 
     hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
     if FAILED(hr) {
         std::cout << "\033[1;31mFail to get current joint values.\033[0m\n";
-        return hr;
+        return {hr, jnt};
     }
     for (int i = 0; i < 8; i++) {
-        jnt.push_back(dJnt[i]);
+        jnt[i] = dJnt[i];
+        std::cout << dJnt[i] << " ";
     }
-    return hr;
+    std::cout << std::endl;
+    return {hr, jnt};
 }
 
 std::vector<double> DensoController::VectorFromVNT(BCAP_VARIANT vnt0) {
