@@ -71,14 +71,14 @@ public:
     BCAP_HRESULT ManualReset();
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
-    std::vector<double> GetMountingCalib(const char* work_coordinate);
+    BCAP_HRESULT GetMountingCalib(const char* work_coordinate,  std::vector<double>& mounting_calib);
     // std::string GetErrorDescription(const char* error_code);
 
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();
-    int CommandServoJoint(const std::vector<double> joint_position);
-    int ExecuteServoTrajectory(RobotTrajectory& traj);
+    BCAP_HRESULT CommandServoJoint(const std::vector<double> joint_position);
+    BCAP_HRESULT ExecuteServoTrajectory(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);

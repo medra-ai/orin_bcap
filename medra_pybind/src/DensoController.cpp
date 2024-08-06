@@ -235,18 +235,20 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     return hr;
 }
 
-std::vector<double> DensoController::GetMountingCalib(const char* work_coordinate) {
+/* Populates mounting_calib with the offset from the specified work coordinate.
+ */
+BCAP_HRESULT DensoController::GetMountingCalib(const char* work_coordinate, std::vector<double>& mounting_calib) {
     double work_def[8]; // Should this be 6?
 
     BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
     if FAILED(hr) {
         std::cerr << "Failed to get mounting calibration %\n";
+        return hr;
     }
 
-    std::vector<double> mounting_calib;
     mounting_calib.resize(0);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 8; i++) {
         mounting_calib.push_back(work_def[i]);
     }
     std::cout << "Got Mounting Calibration: (" << mounting_calib[0] << ", " 
@@ -255,7 +257,7 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
                                                << mounting_calib[3] << ", " 
                                                << mounting_calib[4] << ", " 
                                                << mounting_calib[5] << ")" << std::endl;
-    return mounting_calib;
+    return hr;
 }
 
 // std::string DensoController::GetErrorDescription(const char* error_code) {
@@ -353,14 +355,14 @@ void DensoController::bCapExitProcess() {
  * @param joint_position Vector of 8 DOF joint positions in Radians.
  * @return 0 if successful, 1 otherwise.
  */
-int DensoController::CommandServoJoint(const std::vector<double> joint_position) {
+BCAP_HRESULT DensoController::CommandServoJoint(const std::vector<double> joint_position) {
     BCAP_HRESULT hr = BCAP_S_OK;
     BCAP_VARIANT vntPose, vntReturn;
     vntPose = VNTFromRadVector(joint_position);
     hr = bCapSlvMove(&vntPose, &vntReturn);
     if (FAILED(hr)) {
         std::cerr << "Failed to execute b-CAP slave move";
-        return 1;
+        return hr;
     }
 
     // Print the joint positions
@@ -369,10 +371,10 @@ int DensoController::CommandServoJoint(const std::vector<double> joint_position)
     //     std::cout << joint_position[i] << ' ';
     // std::cout << ")" << std::endl;
     
-    return 0;
+    return hr;
 }
 
-int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
+BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
 {
     BCAP_HRESULT hr;
     long lResult;
@@ -381,7 +383,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapRobotExecute("TakeArm", "");
     if (FAILED(hr)) {
         std::cerr << "Failed to get arm control authority." << std::endl;
-        return 1;
+        return hr;
     }
     std::cout << "Take arm done" << std::endl;
 
@@ -389,7 +391,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
-        return 1;
+        return hr;
     }
     std::cout << "Slave mode ON" << std::endl;
 
@@ -403,7 +405,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         if (FAILED(hr)) {
             std::cerr << "Failed to execute b-CAP slave move, index "
                 << i << " of " << traj.size() << std::endl;
-            return 1;
+            return hr;
         }
 
         // Print the joint positions
@@ -418,7 +420,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
-        return 1;
+        return hr;
     }
     std::cout << "Slave mode OFF" << std::endl;
 
@@ -426,11 +428,11 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
     if (FAILED(hr)) {
         std::cerr << "Failed to give arm control authority." << std::endl;
-        return 1;
+        return hr;
     }
     std::cout << "Give arm done" << std::endl;
 
-    return 0;
+    return hr;
 }
 
 
