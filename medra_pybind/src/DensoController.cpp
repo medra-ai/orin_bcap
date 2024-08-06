@@ -270,24 +270,27 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
 
 ////////////////////////////// High Level Commands //////////////////////////////
 
-void DensoController::bCapEnterProcess(){
-    // start setup realtime
-    // Set process priority (nice value)
-    int priority = -19;
-    int result = setpriority(PRIO_PROCESS, 0, priority);
-    if (result == -1) {
-        std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
-        throw bCapException("Failed to set scheduler priority");
-    }
-    // Set scheduler to FIFO
-    struct sched_param param;
-    param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-    result = sched_setscheduler(0, SCHED_FIFO, &param);
-    if (result == -1) {
-        std::cerr << "Failed to set scheduler: " << strerror(errno) << std::endl;
-        throw bCapException("Failed to change scheduler");
-    }
-    // end setup realtime
+void DensoController::bCapEnterProcess() {
+    // Only set priority on Linux machines
+    #ifdef __linux__
+        // start setup realtime
+        // Set process priority (nice value)
+        int priority = -19;
+        int result = setpriority(PRIO_PROCESS, 0, priority);
+        if (result == -1) {
+            std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
+            throw bCapException("Failed to set scheduler priority");
+        }
+        // Set scheduler to FIFO
+        struct sched_param param;
+        param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+        result = sched_setscheduler(0, SCHED_FIFO, &param);
+        if (result == -1) {
+            std::cerr << "Failed to set scheduler: " << strerror(errno) << std::endl;
+            throw bCapException("Failed to change scheduler");
+        }
+        // end setup realtime
+    #endif
 
     BCAP_HRESULT hr;
 
