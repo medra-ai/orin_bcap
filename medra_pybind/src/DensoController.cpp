@@ -9,6 +9,14 @@
 #include <math.h>
 #include <time.h>
 
+// start realtime headers
+#include <iostream>
+#include <sched.h>
+#include <sys/resource.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+
 
 namespace denso_controller {
 
@@ -180,9 +188,9 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
     }
 
     uint32_t lhVar;
-    hr = bCap_RobotGetVariable(iSockFD, lhRobot, "CURRENT_TOOL", "", &lhVar);   /* Get var handle */
+    hr = bCap_RobotGetVariable(iSockFD, lhRobot, "@CURRENT_TOOL", "", &lhVar);   /* Get var handle */
     if FAILED(hr) {
-        std::cerr << "Set TCP Load failed to get CURRENT_TOOL variable %\n";
+        std::cerr << "Set TCP Load failed to get @CURRENT_TOOL variable %\n";
         return hr;
     }
 
@@ -199,7 +207,7 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
         std::cerr << "Set TCP Load failed to release variable %\n";
     }
 
-    hr = bCapRobotExecute("Givearm", "");
+    hr = bCapRobotExecute("GiveArm", "");
     if (FAILED(hr)) {
         std::cerr << "Set TcpLoad failed to give arm control authority." << std::endl;
     }
@@ -263,6 +271,24 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
 ////////////////////////////// High Level Commands //////////////////////////////
 
 void DensoController::bCapEnterProcess(){
+    // start setup realtime
+    // Set process priority (nice value)
+    int priority = -19;
+    int result = setpriority(PRIO_PROCESS, 0, priority);
+    if (result == -1) {
+        std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
+        throw bCapException("Failed to set scheduler priority");
+    }
+    // Set scheduler to FIFO
+    struct sched_param param;
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    result = sched_setscheduler(0, SCHED_FIFO, &param);
+    if (result == -1) {
+        std::cerr << "Failed to set scheduler: " << strerror(errno) << std::endl;
+        throw bCapException("Failed to change scheduler");
+    }
+    // end setup realtime
+
     BCAP_HRESULT hr;
 
     bCapOpen();
@@ -335,10 +361,10 @@ int DensoController::CommandServoJoint(const std::vector<double> joint_position)
     }
 
     // Print the joint positions
-    std::cout << "slvmove (";
-    for (int i=0; i<joint_position.size(); ++i)
-        std::cout << joint_position[i] << ' ';
-    std::cout << ")" << std::endl;
+    // std::cout << "slvmove (";
+    // for (int i=0; i<joint_position.size(); ++i)
+    //     std::cout << joint_position[i] << ' ';
+    // std::cout << ")" << std::endl;
     
     return 0;
 }
@@ -378,10 +404,10 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         }
 
         // Print the joint positions
-        std::cout << "slvmove (";
-        for (int i=0; i<joint_position.size(); ++i)
-            std::cout << joint_position[i] << ' ';
-        std::cout << ")" << std::endl;
+        // std::cout << "slvmove (";
+        // for (int i=0; i<joint_position.size(); ++i)
+        //     std::cout << joint_position[i] << ' ';
+        // std::cout << ")" << std::endl;
     }
     std::cout << "Exec traj done" << std::endl;
 
