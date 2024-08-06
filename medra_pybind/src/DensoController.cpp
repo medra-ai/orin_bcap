@@ -25,6 +25,10 @@ DensoController::DensoController() {
     server_port_num = DEFAULT_SERVER_PORT_NUM;
 }
 
+DensoController::~DensoController() {
+    bCapExitProcess();
+}
+
 ////////////////////////////// Low Level Commands //////////////////////////////
 
 void DensoController::bCapOpen() {
@@ -277,7 +281,7 @@ void DensoController::bCapEnterProcess() {
     #ifdef __linux__
         // start setup realtime
         // Set process priority (nice value)
-        int priority = -19;
+        int priority = -9;
         int result = setpriority(PRIO_PROCESS, 0, priority);
         if (result == -1) {
             std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
