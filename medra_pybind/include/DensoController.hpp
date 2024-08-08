@@ -9,6 +9,7 @@
 #include <string>
 #include <cassert>
 #include <vector>
+#include <tuple>
 
 #define DEFAULT_SERVER_IP_ADDRESS    "192.168.0.1"
 #define DEFAULT_SERVER_PORT_NUM      5007
@@ -47,7 +48,6 @@ private:
     int _errorcode;
 };
 
-
 class DensoController {
 
 public:
@@ -71,18 +71,18 @@ public:
     BCAP_HRESULT ManualReset();
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
-    std::vector<double> GetMountingCalib(const char* work_coordinate);
+    std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
     // std::string GetErrorDescription(const char* error_code);
 
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();
-    int CommandServoJoint(const std::vector<double> joint_position);
-    int ExecuteServoTrajectory(RobotTrajectory& traj);
+    BCAP_HRESULT CommandServoJoint(const std::vector<double> joint_position);
+    BCAP_HRESULT ExecuteServoTrajectory(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
-    std::vector<double> GetCurJnt();
+    std::tuple<BCAP_HRESULT, std::vector<double>> GetCurJnt();
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
@@ -95,7 +95,20 @@ public:
     uint32_t lhController;
     uint32_t lhRobot;
 
+    int current_waypoint_index;
+
 };
+
+
+class DensoArmMutex {
+public:
+    DensoArmMutex(DensoController &controller);
+    ~DensoArmMutex();
+
+private:
+    DensoController &_controller;
+};
+
 
 
 ////////////////////////////// Utilities //////////////////////////////

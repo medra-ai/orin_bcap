@@ -126,7 +126,9 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def_readonly("server_port_num", &DensoController::server_port_num)
     .def_readonly("iSockFD", &DensoController::iSockFD)
     .def_readonly("lhController", &DensoController::lhController)
-    .def_readonly("lhRobot", &DensoController::lhRobot);
+    .def_readonly("lhRobot", &DensoController::lhRobot)
+    .def_readonly("current_waypoint_index", &DensoController::current_waypoint_index);
+
 
   m.def("VRad2Deg", &VRad2Deg);
   m.def("Rad2Deg", &Rad2Deg);

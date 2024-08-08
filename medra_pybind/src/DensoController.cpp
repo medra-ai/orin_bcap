@@ -20,6 +20,15 @@
 
 namespace denso_controller {
 
+DensoArmMutex::DensoArmMutex(DensoController &controller) : _controller(controller) {
+    _controller.bCapRobotExecute("TakeArm", "");
+}
+
+DensoArmMutex::~DensoArmMutex() {
+    _controller.bCapRobotExecute("GiveArm", "");
+}
+
+
 DensoController::DensoController() {
     server_ip_address = DEFAULT_SERVER_IP_ADDRESS;
     server_port_num = DEFAULT_SERVER_PORT_NUM;
@@ -64,7 +73,7 @@ void DensoController::bCapControllerConnect() {
     std::cout << "server ip address: " << server_ip_address << "..." << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ConrtollerConnect failed.\n");
+        throw bCapException("bCap_ControllerConnect failed.\n");
     }
 }
 
@@ -72,7 +81,7 @@ void DensoController::bCapControllerDisconnect() {
     std::cout << "Release controller handle.\n";
     BCAP_HRESULT hr = bCap_ControllerDisconnect(iSockFD, lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ConrtollerDisconnect failed.\n");
+        throw bCapException("bCap_ControllerDisconnect failed.\n");
     }
 }
 
@@ -80,7 +89,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_ConrtollerDisconnect failed.\n");
+        throw bCapException("bCap_ControllerDisconnect failed.\n");
     }
 }
 
@@ -179,14 +188,9 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
     // tool_value = 1; // ROBOTIQ_2F85_GRIPPER_PAYLOAD
     // tool_value = 2; // ROBOTIQ_2F140_GRIPPER_PAYLOAD
     long lValue = tool_value;
-    
-    BCAP_HRESULT hr = BCAP_S_OK;
-    hr = bCapRobotExecute("TakeArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Set TcpLoad failed to take arm control authority." << std::endl;
-        return hr;
-    }
+    auto arm_mutex = DensoArmMutex(*this);
 
+    BCAP_HRESULT hr = BCAP_S_OK;
     uint32_t lhVar;
     hr = bCap_RobotGetVariable(iSockFD, lhRobot, "@CURRENT_TOOL", "", &lhVar);   /* Get var handle */
     if FAILED(hr) {
@@ -207,10 +211,6 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
         std::cerr << "Set TCP Load failed to release variable %\n";
     }
 
-    hr = bCapRobotExecute("GiveArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Set TcpLoad failed to give arm control authority." << std::endl;
-    }
     return hr;
 }
 
@@ -219,34 +219,35 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     // tool_name = "Tool2";
 
     long lResult;
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", tool_name);
-    if SUCCEEDED(hr) 
-    {			
-        hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
-        if SUCCEEDED(hr) {
-            std::cout << "Tool changed to " << tool_name << " %\n";
-        }
-        else {
-            std::cerr << "Failed to change tool %\n";
-        }
+    auto arm_mutex = DensoArmMutex(*this);
+
+    BCAP_HRESULT hr;
+    hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
+    if SUCCEEDED(hr) {
+        std::cout << "Tool changed to " << tool_name << " %\n";
     }
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
+    else {
+        std::cerr << "Failed to change tool %\n";
+    }
 
     return hr;
 }
 
-std::vector<double> DensoController::GetMountingCalib(const char* work_coordinate) {
+/* Populates mounting_calib with the offset from the specified work coordinate.
+ */
+std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(const char* work_coordinate) {
     double work_def[8]; // Should this be 6?
+    std::vector<double> mounting_calib = std::vector<double>(8);
 
     BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
     if FAILED(hr) {
         std::cerr << "Failed to get mounting calibration %\n";
+        return {hr, mounting_calib};
     }
 
-    std::vector<double> mounting_calib;
     mounting_calib.resize(0);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 8; i++) {
         mounting_calib.push_back(work_def[i]);
     }
     std::cout << "Got Mounting Calibration: (" << mounting_calib[0] << ", " 
@@ -255,7 +256,7 @@ std::vector<double> DensoController::GetMountingCalib(const char* work_coordinat
                                                << mounting_calib[3] << ", " 
                                                << mounting_calib[4] << ", " 
                                                << mounting_calib[5] << ")" << std::endl;
-    return mounting_calib;
+    return {hr, mounting_calib};
 }
 
 // std::string DensoController::GetErrorDescription(const char* error_code) {
@@ -275,7 +276,7 @@ void DensoController::bCapEnterProcess() {
     #ifdef __linux__
         // start setup realtime
         // Set process priority (nice value)
-        int priority = -19;
+        int priority = -9;
         int result = setpriority(PRIO_PROCESS, 0, priority);
         if (result == -1) {
             std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
@@ -314,18 +315,13 @@ void DensoController::bCapEnterProcess() {
         throw bCapException("\033[1;31mFail to execute manual reset.\033[0m\n");
     }
 
-    hr = bCapRobotExecute("TakeArm", "");
-    if FAILED(hr) {
-        bCapExitProcess();
-        throw bCapException("\033[1;31mFail to get arm control authority.\033[0m\n");
-    }
-
+    auto arm_mutex = DensoArmMutex(*this);
     hr = bCapMotor(true);
     if FAILED(hr) {
         bCapExitProcess();
         throw bCapException("\033[1;31mFail to turn motor on.\033[0m\n");
     }
-
+    current_waypoint_index = 0;
 }
 
 void DensoController::bCapExitProcess() {
@@ -333,11 +329,6 @@ void DensoController::bCapExitProcess() {
     hr = bCapMotor(false);
     if FAILED(hr) {
         std::cout << "\033[1;31mFail to turn off motor.\033[0m\n";
-    }
-
-    hr = bCapRobotExecute("Givearm", "");
-    if FAILED(hr) {
-        std::cout << "\033[1;31mFail to release arm control authority.\033[0m\n";
     }
 
     bCapReleaseRobot();
@@ -353,14 +344,14 @@ void DensoController::bCapExitProcess() {
  * @param joint_position Vector of 8 DOF joint positions in Radians.
  * @return 0 if successful, 1 otherwise.
  */
-int DensoController::CommandServoJoint(const std::vector<double> joint_position) {
+BCAP_HRESULT DensoController::CommandServoJoint(const std::vector<double> joint_position) {
     BCAP_HRESULT hr = BCAP_S_OK;
     BCAP_VARIANT vntPose, vntReturn;
     vntPose = VNTFromRadVector(joint_position);
     hr = bCapSlvMove(&vntPose, &vntReturn);
     if (FAILED(hr)) {
         std::cerr << "Failed to execute b-CAP slave move";
-        return 1;
+        return hr;
     }
 
     // Print the joint positions
@@ -369,33 +360,28 @@ int DensoController::CommandServoJoint(const std::vector<double> joint_position)
     //     std::cout << joint_position[i] << ' ';
     // std::cout << ")" << std::endl;
     
-    return 0;
+    return hr;
 }
 
-int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
+BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
 {
     BCAP_HRESULT hr;
     long lResult;
 
-    // Acquire arm control authority
-    hr = bCapRobotExecute("TakeArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Failed to get arm control authority." << std::endl;
-        return 1;
-    }
-    std::cout << "Take arm done" << std::endl;
+    auto arm_mutex = DensoArmMutex(*this);
 
     // Enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
-        return 1;
+        return hr;
     }
     std::cout << "Slave mode ON" << std::endl;
 
     // Execute the trajectory
     BCAP_VARIANT vntPose, vntReturn;
     for (size_t i = 0; i < traj.size(); i++) {
+        current_waypoint_index = i;
         const auto& joint_position = traj.trajectory[i];
         vntPose = VNTFromRadVector(joint_position);
         hr = bCapSlvMove(&vntPose, &vntReturn);
@@ -403,7 +389,7 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         if (FAILED(hr)) {
             std::cerr << "Failed to execute b-CAP slave move, index "
                 << i << " of " << traj.size() << std::endl;
-            return 1;
+            return hr;
         }
 
         // Print the joint positions
@@ -418,19 +404,11 @@ int DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
-        return 1;
+        return hr;
     }
     std::cout << "Slave mode OFF" << std::endl;
 
-    // Release arm control authority
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
-    if (FAILED(hr)) {
-        std::cerr << "Failed to give arm control authority." << std::endl;
-        return 1;
-    }
-    std::cout << "Give arm done" << std::endl;
-
-    return 0;
+    return hr;
 }
 
 
@@ -446,21 +424,24 @@ const char* DensoController::CommandFromVector(std::vector<double> q) {
     return commandstring.c_str(); // convert string -> const shar*
 }
 
-std::vector<double> DensoController::GetCurJnt() {
+/* Populates jnt with the current joint values in degrees.
+ */
+std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetCurJnt() {
     BCAP_HRESULT hr;
     double dJnt[8];
-    std::vector<double> jointvalues;
-    jointvalues.resize(0);
+    std::vector<double> jnt(8);
 
     hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
     if FAILED(hr) {
         std::cout << "\033[1;31mFail to get current joint values.\033[0m\n";
-        return jointvalues;
+        return {hr, jnt};
     }
     for (int i = 0; i < 8; i++) {
-        jointvalues.push_back(dJnt[i]);
+        jnt[i] = dJnt[i];
+        std::cout << dJnt[i] << " ";
     }
-    return jointvalues;
+    std::cout << std::endl;
+    return {hr, jnt};
 }
 
 std::vector<double> DensoController::VectorFromVNT(BCAP_VARIANT vnt0) {

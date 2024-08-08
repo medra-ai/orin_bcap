@@ -32,7 +32,15 @@ int main(){
     // TODO: Add manual reset and clear errors
 
     // Generate a trajectory
-    std::vector<double> currentPose = controller.GetCurJnt();
+    std::vector<double> currentPose;
+    auto jt_tuple = controller.GetCurJnt();
+    hr = std::get<0>(jt_tuple);
+    currentPose = std::get<1>(jt_tuple);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to get current joint position" << std::endl;
+        return 1;
+    }
+
     currentPose = {
         denso_controller::Deg2Rad(currentPose[0]),
         denso_controller::Deg2Rad(currentPose[1]),
