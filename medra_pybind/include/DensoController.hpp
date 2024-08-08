@@ -48,7 +48,6 @@ private:
     int _errorcode;
 };
 
-
 class DensoController {
 
 public:
@@ -100,6 +99,17 @@ public:
     int current_waypoint_index;
 
 };
+
+
+class DensoArmMutex {
+public:
+    DensoArmMutex(DensoController &controller);
+    ~DensoArmMutex();
+
+private:
+    DensoController &_controller;
+};
+
 
 
 ////////////////////////////// Utilities //////////////////////////////

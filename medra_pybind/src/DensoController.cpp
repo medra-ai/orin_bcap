@@ -20,6 +20,15 @@
 
 namespace denso_controller {
 
+DensoArmMutex::DensoArmMutex(DensoController &controller) : _controller(controller) {
+    _controller.bCapRobotExecute("TakeArm", "");
+}
+
+DensoArmMutex::~DensoArmMutex() {
+    _controller.bCapRobotExecute("GiveArm", "");
+}
+
+
 DensoController::DensoController() {
     server_ip_address = DEFAULT_SERVER_IP_ADDRESS;
     server_port_num = DEFAULT_SERVER_PORT_NUM;
@@ -68,7 +77,7 @@ void DensoController::bCapControllerConnect() {
     std::cout << "server ip address: " << server_ip_address << "..." << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ConrtollerConnect failed.\n");
+        throw bCapException("bCap_ControllerConnect failed.\n");
     }
 }
 
@@ -76,7 +85,7 @@ void DensoController::bCapControllerDisconnect() {
     std::cout << "Release controller handle.\n";
     BCAP_HRESULT hr = bCap_ControllerDisconnect(iSockFD, lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ConrtollerDisconnect failed.\n");
+        throw bCapException("bCap_ControllerDisconnect failed.\n");
     }
 }
 
@@ -84,7 +93,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_ConrtollerDisconnect failed.\n");
+        throw bCapException("bCap_ControllerDisconnect failed.\n");
     }
 }
 
@@ -183,14 +192,9 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
     // tool_value = 1; // ROBOTIQ_2F85_GRIPPER_PAYLOAD
     // tool_value = 2; // ROBOTIQ_2F140_GRIPPER_PAYLOAD
     long lValue = tool_value;
-    
-    BCAP_HRESULT hr = BCAP_S_OK;
-    hr = bCapRobotExecute("TakeArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Set TcpLoad failed to take arm control authority." << std::endl;
-        return hr;
-    }
+    auto arm_mutex = DensoArmMutex(*this);
 
+    BCAP_HRESULT hr = BCAP_S_OK;
     uint32_t lhVar;
     hr = bCap_RobotGetVariable(iSockFD, lhRobot, "@CURRENT_TOOL", "", &lhVar);   /* Get var handle */
     if FAILED(hr) {
@@ -211,10 +215,6 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
         std::cerr << "Set TCP Load failed to release variable %\n";
     }
 
-    hr = bCapRobotExecute("GiveArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Set TcpLoad failed to give arm control authority." << std::endl;
-    }
     return hr;
 }
 
@@ -223,18 +223,16 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     // tool_name = "Tool2";
 
     long lResult;
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", tool_name);
-    if SUCCEEDED(hr) 
-    {			
-        hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
-        if SUCCEEDED(hr) {
-            std::cout << "Tool changed to " << tool_name << " %\n";
-        }
-        else {
-            std::cerr << "Failed to change tool %\n";
-        }
+    auto arm_mutex = DensoArmMutex(*this);
+
+    BCAP_HRESULT hr;
+    hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
+    if SUCCEEDED(hr) {
+        std::cout << "Tool changed to " << tool_name << " %\n";
     }
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
+    else {
+        std::cerr << "Failed to change tool %\n";
+    }
 
     return hr;
 }
@@ -320,12 +318,7 @@ void DensoController::bCapEnterProcess() {
         throw bCapException("\033[1;31mFail to execute manual reset.\033[0m\n");
     }
 
-    hr = bCapRobotExecute("TakeArm", "");
-    if FAILED(hr) {
-        bCapExitProcess();
-        throw bCapException("\033[1;31mFail to get arm control authority.\033[0m\n");
-    }
-
+    auto arm_mutex = DensoArmMutex(*this);
     hr = bCapMotor(true);
     if FAILED(hr) {
         bCapExitProcess();
@@ -340,11 +333,6 @@ void DensoController::bCapExitProcess() {
     hr = bCapMotor(false);
     if FAILED(hr) {
         std::cout << "\033[1;31mFail to turn off motor.\033[0m\n";
-    }
-
-    hr = bCapRobotExecute("Givearm", "");
-    if FAILED(hr) {
-        std::cout << "\033[1;31mFail to release arm control authority.\033[0m\n";
     }
 
     bCapReleaseRobot();
@@ -384,13 +372,7 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     BCAP_HRESULT hr;
     long lResult;
 
-    // Acquire arm control authority
-    hr = bCapRobotExecute("TakeArm", "");
-    if (FAILED(hr)) {
-        std::cerr << "Failed to get arm control authority." << std::endl;
-        return hr;
-    }
-    std::cout << "Take arm done" << std::endl;
+    auto arm_mutex = DensoArmMutex(*this);
 
     // Enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
@@ -429,14 +411,6 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         return hr;
     }
     std::cout << "Slave mode OFF" << std::endl;
-
-    // Release arm control authority
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
-    if (FAILED(hr)) {
-        std::cerr << "Failed to give arm control authority." << std::endl;
-        return hr;
-    }
-    std::cout << "Give arm done" << std::endl;
 
     return hr;
 }
