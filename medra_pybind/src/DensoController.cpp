@@ -34,10 +34,6 @@ DensoController::DensoController() {
     server_port_num = DEFAULT_SERVER_PORT_NUM;
 }
 
-DensoController::~DensoController() {
-    bCapExitProcess();
-}
-
 ////////////////////////////// Low Level Commands //////////////////////////////
 
 void DensoController::bCapOpen() {
@@ -325,7 +321,6 @@ void DensoController::bCapEnterProcess() {
         throw bCapException("\033[1;31mFail to turn motor on.\033[0m\n");
     }
     current_waypoint_index = 0;
-
 }
 
 void DensoController::bCapExitProcess() {

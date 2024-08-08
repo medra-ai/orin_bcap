@@ -52,7 +52,6 @@ class DensoController {
 
 public:
     DensoController();
-    ~DensoController();
 
     // low level commands
     void bCapOpen();
