@@ -233,8 +233,6 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     return hr;
 }
 
-/* Populates mounting_calib with the offset from the specified work coordinate.
- */
 std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(const char* work_coordinate) {
     double work_def[8]; // Should this be 6?
     std::vector<double> mounting_calib = std::vector<double>(8);
@@ -424,8 +422,6 @@ const char* DensoController::CommandFromVector(std::vector<double> q) {
     return commandstring.c_str(); // convert string -> const shar*
 }
 
-/* Populates jnt with the current joint values in degrees.
- */
 std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetCurJnt() {
     BCAP_HRESULT hr;
     double dJnt[8];
