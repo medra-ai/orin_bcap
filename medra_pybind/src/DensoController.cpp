@@ -235,14 +235,15 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
 
 /* Populates mounting_calib with the offset from the specified work coordinate.
  */
-BCAP_HRESULT DensoController::GetMountingCalib(const char* work_coordinate, std::vector<double>& mounting_calib) {
+std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(const char* work_coordinate) {
     double work_def[8]; // Should this be 6?
+    std::vector<double> mounting_calib = std::vector<double>(8);
 
     BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
     if FAILED(hr) {
         std::cerr << "Failed to get mounting calibration %\n";
-        return hr;
+        return {hr, mounting_calib};
     }
 
     mounting_calib.resize(0);
@@ -255,7 +256,7 @@ BCAP_HRESULT DensoController::GetMountingCalib(const char* work_coordinate, std:
                                                << mounting_calib[3] << ", " 
                                                << mounting_calib[4] << ", " 
                                                << mounting_calib[5] << ")" << std::endl;
-    return hr;
+    return {hr, mounting_calib};
 }
 
 // std::string DensoController::GetErrorDescription(const char* error_code) {
