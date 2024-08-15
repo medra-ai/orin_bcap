@@ -29,36 +29,105 @@ extern "C" {
 #else
 #define SERIAL_BAUDRATE     0x0000f /*B38400*/
 #endif
+
+#include "stdint.h"
+typedef int32_t BCAP_HRESULT;
+
 /**
- * @enum	BCAP_HRESULT
- * @brief	BCAP_HRESULT values
+ * @def BCAP_S_OK
+ * @brief Succeeded.
  */
-typedef enum BCAP_HRESULT {
+#define BCAP_S_OK ((BCAP_HRESULT)0L)
 
-    BCAP_S_OK               = 0,  /*	OK                          */
-    BCAP_E_NOTIMPL          = 0x80004001,   /*	Not implemented	function is called	*/
-    BCAP_E_ABORT            = 0x80004004,   /*	Function aborted			*/
-    BCAP_E_FAIL             = 0x80004005,   /*	Function failed				*/
-    BCAP_E_UNEXPECTED       = 0x8000FFFF,   /*	Fatal Error occurred		*/
-    BCAP_E_INVALIDRCVPACKET = 0x80010001,   /*	Invalid packet is received. */
-                                            /* When this error is occurred, robot controller disconnect from client immediately.*/
-                                            /* Please make sure the packet that you sent. */
+/**
+ * @def BCAP_E_NOTIMPL
+ * @brief Not implemented function is called.
+ */
+#define BCAP_E_NOTIMPL ((BCAP_HRESULT)0x80004001L)
 
-    BCAP_E_INVALIDSNDPACKET = 0x80010002,   /*	Invalid packet is sent		*/
-    BCAP_E_INVALIDARGTYPE   = 0x80010003,   /*	Invalid argument type		*/
-    BCAP_E_ROBOTISBUSY      = 0x80010004,   /*	Robot is busy (Wait for a while)	*/
-    BCAP_E_INVALIDCOMMAND   = 0x80010005,   /*	Invalid command string is received  */
+/**
+ * @def BCAP_E_ABORT
+ * @brief Function aborted.
+ */
+#define BCAP_E_ABORT ((BCAP_HRESULT)0x80004004L)
 
-    BCAP_E_PACKETSIZEOVER   = 0x80010011,   /*	Received packet size over ( > 16Mbytes) */
+/**
+ * @def BCAP_E_FAIL
+ * @brief Function failed.
+ */
+#define BCAP_E_FAIL ((BCAP_HRESULT)0x80004005L)
 
-    BCAP_E_ARGSIZEOVER      = 0x80010012,   /*	An argument siez over of the received packet. ( > 16Mbytes) */
-    BCAP_E_ACCESSDENIED     = 0x80070005,   /*	Access denied				*/
-    BCAP_E_HANDLE           = 0x80070006,   /*	Invalid handle				*/
-    BCAP_E_OUTOFMEMORY      = 0x8007000E,   /*	Out of memory				*/
-    BCAP_E_INVALIDARG       = 0x80070057    /*	Invalid argument			*/
+/**
+ * @def BCAP_E_UNEXPECTED
+ * @brief Fatal Error occurred.
+ */
+#define BCAP_E_UNEXPECTED ((BCAP_HRESULT)0x8000FFFFL)
 
-} BCAP_HRESULT;
+/**
+ * @def BCAP_E_INVALIDRCVPACKET
+ * @brief Invalid packet is received.
+ */
+#define BCAP_E_INVALIDRCVPACKET ((BCAP_HRESULT)0x80010001L)
 
+/**
+ * @def BCAP_E_INVALIDSNDPACKET
+ * @brief Invalid packet is sent.
+ */
+#define BCAP_E_INVALIDSNDPACKET ((BCAP_HRESULT)0x80010002L)
+
+/**
+ * @def BCAP_E_INVALIDARGTYPE
+ * @brief Invalid argument type.
+ */
+#define BCAP_E_INVALIDARGTYPE ((BCAP_HRESULT)0x80010003L)
+
+/**
+ * @def BCAP_E_ROBOTISBUSY
+ * @brief Robot is busy (Wait for a while).
+ */
+#define BCAP_E_ROBOTISBUSY ((BCAP_HRESULT)0x80010004L)
+
+/**
+ * @def BCAP_E_INVALIDCOMMAND
+ * @brief Invalid command string is received.
+ */
+#define BCAP_E_INVALIDCOMMAND ((BCAP_HRESULT)0x80010005L)
+
+/**
+ * @def BCAP_E_PACKETSIZEOVER
+ * @brief Received packet size over ( > 16Mbytes).
+ */
+#define BCAP_E_PACKETSIZEOVER ((BCAP_HRESULT)0x80010011L)
+
+/**
+ * @def BCAP_E_ARGSIZEOVER
+ * @brief An argument siez over of the received packet. ( > 16Mbytes).
+ */
+#define BCAP_E_ARGSIZEOVER ((BCAP_HRESULT)0x80010012L)
+
+/**
+ * @def BCAP_E_ACCESSDENIED
+ * @brief Access denied.
+ */
+#define BCAP_E_ACCESSDENIED ((BCAP_HRESULT)0x80070005L)
+
+/**
+ * @def BCAP_E_HANDLE
+ * @brief Invalid handle.
+ */
+#define BCAP_E_HANDLE ((BCAP_HRESULT)0x80070006L)
+
+/**
+ * @def BCAP_E_OUTOFMEMORY
+ * @brief Out of memory.
+ */
+#define BCAP_E_OUTOFMEMORY ((BCAP_HRESULT)0x8007000EL)
+
+/**
+ * @def BCAP_E_INVALIDARG
+ * @brief Invalid argument.
+ */
+#define BCAP_E_INVALIDARG ((BCAP_HRESULT)0x80070057L)
 
 
 /* b-CAP Type id */
