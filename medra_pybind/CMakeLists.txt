@@ -23,6 +23,15 @@ include_directories(
   include
 )
 
+# Include stdint.h
+if(MSVC AND "${_VS_VER}" MATCHES [[v([0-9]?[0-9])]])
+  if("${CMAKE_MATCH_1}" LESS 10)
+    include_directories(
+      include/stdint
+    )
+  endif("${CMAKE_MATCH_1}" LESS 10)
+endif(MSVC AND "${_VS_VER}" MATCHES [[v([0-9]?[0-9])]])
+
 # Pybind
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
