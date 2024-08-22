@@ -32,6 +32,10 @@ DensoArmMutex::~DensoArmMutex() {
 DensoController::DensoController() {
     server_ip_address = DEFAULT_SERVER_IP_ADDRESS;
     server_port_num = DEFAULT_SERVER_PORT_NUM;
+    iSockFD = 0;
+    lhController = 0;
+    lhRobot = 0;
+    current_waypoint_index = 0;
 }
 
 ////////////////////////////// Low Level Commands //////////////////////////////
@@ -89,7 +93,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerDisconnect failed.\n");
+        throw bCapException("bCap_ControllerGetRobot failed.\n");
     }
 }
 
@@ -259,15 +263,15 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
     return {hr, mounting_calib};
 }
 
-// std::string DensoController::GetErrorDescription(const char* error_code) {
-//     char error_description[512]; // What's the max length of error description?
-//     BCAP_HRESULT hr = BCAP_S_OK;
-//     hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
-//     if FAILED(hr) {
-//         std::cerr << "Failed to get error description %\n";
-//     }
-//     return std::string(error_description);
-// }
+std::string DensoController::GetErrorDescription(const char* error_code) {
+    char error_description[512]; // What's the max length of error description?
+    BCAP_HRESULT hr = BCAP_S_OK;
+    hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
+    if FAILED(hr) {
+        std::cerr << "Failed to get error description %\n";
+    }
+    return std::string(error_description);
+}
 
 ////////////////////////////// High Level Commands //////////////////////////////
 
@@ -296,7 +300,9 @@ void DensoController::bCapEnterProcess() {
     BCAP_HRESULT hr;
 
     bCapOpen();
+    std::cout << "b-Cap port opened" << std::endl;
     bCapServiceStart();
+    std::cout << "b-Cap service started" << std::endl;
     bCapControllerConnect();
     std::cout << "Connected to controller" << std::endl;
     bCapGetRobot();
@@ -344,14 +350,14 @@ void DensoController::bCapExitProcess() {
  * @param joint_position Vector of 8 DOF joint positions in Radians.
  * @return 0 if successful, 1 otherwise.
  */
-BCAP_HRESULT DensoController::CommandServoJoint(const std::vector<double> joint_position) {
+void DensoController::CommandServoJoint(const std::vector<double> joint_position) {
     BCAP_HRESULT hr = BCAP_S_OK;
     BCAP_VARIANT vntPose, vntReturn;
     vntPose = VNTFromRadVector(joint_position);
     hr = bCapSlvMove(&vntPose, &vntReturn);
     if (FAILED(hr)) {
         std::cerr << "Failed to execute b-CAP slave move";
-        return hr;
+        throw bCapException("Failed to execute b-CAP slave move");
     }
 
     // Print the joint positions
@@ -360,10 +366,9 @@ BCAP_HRESULT DensoController::CommandServoJoint(const std::vector<double> joint_
     //     std::cout << joint_position[i] << ' ';
     // std::cout << ")" << std::endl;
     
-    return hr;
 }
 
-BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
+void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
 {
     BCAP_HRESULT hr;
     long lResult;
@@ -374,7 +379,7 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
-        return hr;
+        throw bCapException("Failed to enter b-CAP slave mode.");
     }
     std::cout << "Slave mode ON" << std::endl;
 
@@ -389,7 +394,8 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         if (FAILED(hr)) {
             std::cerr << "Failed to execute b-CAP slave move, index "
                 << i << " of " << traj.size() << std::endl;
-            return hr;
+            std::string err_msg = "Failed to execute b-CAP slave move, index " + std::to_string(i) + " of " + std::to_string(traj.size());
+            throw bCapException(err_msg, hr, *this);
         }
 
         // Print the joint positions
@@ -404,11 +410,10 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
-        return hr;
+        throw bCapException("Failed to exit b-CAP slave mode.");
     }
     std::cout << "Slave mode OFF" << std::endl;
 
-    return hr;
 }
 
 

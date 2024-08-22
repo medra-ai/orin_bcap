@@ -23,31 +23,6 @@
 
 namespace denso_controller {
 
-class bCapException : public std::exception {
-public:
-    bCapException() : std::exception(), _s("Unknown exception"), _errorcode(0) {
-    }
-    bCapException(const std::string& s, int errorcode = 0) : std::exception() {
-        _s = s;
-        _errorcode = errorcode;
-    }
-
-    virtual ~bCapException() throw() {
-    }
-
-    int error_code() const {
-        return _errorcode;
-    }
-
-    std::string error_description() const {
-        return _s;
-    }
-
-private:
-    std::string _s;
-    int _errorcode;
-};
-
 class DensoController {
 
 public:
@@ -72,13 +47,13 @@ public:
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
-    // std::string GetErrorDescription(const char* error_code);
+    std::string GetErrorDescription(const char* error_code);
 
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();
-    BCAP_HRESULT CommandServoJoint(const std::vector<double> joint_position);
-    BCAP_HRESULT ExecuteServoTrajectory(RobotTrajectory& traj);
+    void CommandServoJoint(const std::vector<double> joint_position);
+    void ExecuteServoTrajectory(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
@@ -109,6 +84,35 @@ private:
     DensoController &_controller;
 };
 
+
+class bCapException : public std::exception {
+public:
+    bCapException() : std::exception(), _s("Unknown exception"), _errorcode(0) {
+    }
+    bCapException(const std::string& s) : std::exception() {
+        _s = s;
+        _errorcode = 0;
+    }
+    bCapException(const std::string& s, BCAP_HRESULT errorcode, DensoController &controller) : std::exception() {
+        _errorcode = errorcode;
+        _s = s + " ErrorDescription: " + controller.GetErrorDescription(reinterpret_cast<char*>(errorcode));
+    }
+
+    virtual ~bCapException() throw() {
+    }
+
+    BCAP_HRESULT error_code() const {
+        return _errorcode;
+    }
+
+    std::string error_description() const {
+        return _s;
+    }
+
+private:
+    std::string _s;
+    BCAP_HRESULT _errorcode;
+};
 
 
 ////////////////////////////// Utilities //////////////////////////////
