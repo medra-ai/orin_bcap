@@ -77,7 +77,7 @@ void DensoController::bCapControllerConnect() {
     std::cout << "server ip address: " << server_ip_address << "..." << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
-        throw std::runtime_error("bCap_ControllerConnect failed.\n");
+        throw std::runtime_error("\033[1;31mbCap_ControllerConnect failed.\033[0m\n");
     }
 }
 
@@ -85,7 +85,7 @@ void DensoController::bCapControllerDisconnect() {
     std::cout << "Release controller handle.\n";
     BCAP_HRESULT hr = bCap_ControllerDisconnect(iSockFD, lhController);
     if FAILED(hr) {
-        throw std::runtime_error("bCap_ControllerDisconnect failed.\n");
+        throw std::runtime_error("\033[1;31mbCap_ControllerDisconnect failed.\033[0m\n");
     }
 }
 
@@ -93,7 +93,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw std::runtime_error("bCap_ControllerGetRobot failed.\n");
+        throw std::runtime_error("\033[1;31mbCap_ControllerGetRobot failed.\033[0m\n");
     }
 }
 
@@ -101,7 +101,15 @@ void DensoController::bCapReleaseRobot() {
     std::cout << "Release robot handle.\n";
     BCAP_HRESULT hr = bCap_RobotRelease(iSockFD, lhRobot);
     if FAILED(hr) {
-        throw std::runtime_error("bCap_RobotRelease failed.\n");
+        throw std::runtime_error("\033[1;31mbCap_RobotRelease failed.\033[0m\n");
+    }
+}
+
+void DensoController::bCapClearError() {
+    long lResult;
+    BCAP_HRESULT hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
+    if FAILED(hr) {
+        throw std::runtime_error("\033[1;31mFail to clear error.\033[0m\n");
     }
 }
 

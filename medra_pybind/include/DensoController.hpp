@@ -37,6 +37,7 @@ public:
     void bCapControllerDisconnect();
     void bCapGetRobot();
     void bCapReleaseRobot();
+    void bCapClearError();
     BCAP_HRESULT bCapRobotExecute(const char* command, const char* option);
     BCAP_HRESULT bCapRobotMove(const char* pose, const char* option);
     BCAP_HRESULT bCapMotor(bool command);

@@ -71,6 +71,7 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("bCapControllerDisconnect", &DensoController::bCapControllerDisconnect, py::call_guard<py::gil_scoped_release>())
     .def("bCapGetRobot", &DensoController::bCapGetRobot, py::call_guard<py::gil_scoped_release>())
     .def("bCapReleaseRobot", &DensoController::bCapReleaseRobot, py::call_guard<py::gil_scoped_release>())
+    .def("bCapClearError", &DensoController::bCapClearError, py::call_guard<py::gil_scoped_release>())
     .def("bCapRobotExecute", &DensoController::bCapRobotExecute, py::call_guard<py::gil_scoped_release>())
     .def("bCapRobotMove", &DensoController::bCapRobotMove, py::call_guard<py::gil_scoped_release>())
     .def("bCapMotor", &DensoController::bCapMotor, py::call_guard<py::gil_scoped_release>())
