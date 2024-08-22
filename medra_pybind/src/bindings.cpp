@@ -53,13 +53,6 @@ PYBIND11_MODULE(_medra_bcap, m) {
                   [](BCAP_VARIANT &v) { return reinterpret_cast<uintptr_t>(v.Value.Data); },
                   [](BCAP_VARIANT &v, uintptr_t data) { v.Value.Data = reinterpret_cast<void*>(data); });
 
-  py::class_<bCapException>(m, "bCapException")
-    .def(py::init<>())
-    .def(py::init<const std::string&>())
-    .def(py::init<const std::string &, BCAP_HRESULT, DensoController &>())
-    .def("error_code", &bCapException::error_code)
-    .def("error_description", &bCapException::error_description);
-
   py::class_<RobotTrajectory>(m, "RobotTrajectory")
     .def(py::init<>())
     .def_readonly("dimension", &RobotTrajectory::dimension)

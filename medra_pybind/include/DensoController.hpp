@@ -85,36 +85,6 @@ private:
 };
 
 
-class bCapException : public std::exception {
-public:
-    bCapException() : std::exception(), _s("Unknown exception"), _errorcode(0) {
-    }
-    bCapException(const std::string& s) : std::exception() {
-        _s = s;
-        _errorcode = 0;
-    }
-    bCapException(const std::string& s, BCAP_HRESULT errorcode, DensoController &controller) : std::exception() {
-        _errorcode = errorcode;
-        _s = s + " ErrorDescription: " + controller.GetErrorDescription(reinterpret_cast<char*>(errorcode));
-    }
-
-    virtual ~bCapException() throw() {
-    }
-
-    BCAP_HRESULT error_code() const {
-        return _errorcode;
-    }
-
-    std::string error_description() const {
-        return _s;
-    }
-
-private:
-    std::string _s;
-    BCAP_HRESULT _errorcode;
-};
-
-
 ////////////////////////////// Utilities //////////////////////////////
 std::vector<double> VRad2Deg(std::vector<double> vect0);
 
