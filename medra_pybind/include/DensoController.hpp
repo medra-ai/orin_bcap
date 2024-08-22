@@ -37,7 +37,7 @@ public:
     void bCapControllerDisconnect();
     void bCapGetRobot();
     void bCapReleaseRobot();
-    void bCapClearError();
+    BCAP_HRESULT bCapClearError();
     BCAP_HRESULT bCapRobotExecute(const char* command, const char* option);
     BCAP_HRESULT bCapRobotMove(const char* pose, const char* option);
     BCAP_HRESULT bCapMotor(bool command);
@@ -48,7 +48,7 @@ public:
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
-    std::string GetErrorDescription(const char* error_code);
+    std::string GetErrorDescription(BCAP_HRESULT error_code);
 
     // high level commands
     void bCapEnterProcess();

@@ -82,7 +82,7 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>()) // Untested
     .def("ChangeTool", &DensoController::ChangeTool, py::call_guard<py::gil_scoped_release>()) // Untested, alternative to SetTcpLoad?
     .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>()) // Untested
-    // .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>()) // Untested
+    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>()) // Untested
 
     // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess, py::call_guard<py::gil_scoped_release>())

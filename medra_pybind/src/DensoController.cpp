@@ -105,12 +105,10 @@ void DensoController::bCapReleaseRobot() {
     }
 }
 
-void DensoController::bCapClearError() {
+BCAP_HRESULT DensoController::bCapClearError() {
     long lResult;
     BCAP_HRESULT hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
-    if FAILED(hr) {
-        throw std::runtime_error("\033[1;31mFail to clear error.\033[0m\n");
-    }
+    return hr;
 }
 
 BCAP_HRESULT DensoController::bCapRobotExecute(const char* command, const char* option) {
@@ -271,10 +269,12 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
     return {hr, mounting_calib};
 }
 
-std::string DensoController::GetErrorDescription(const char* error_code) {
+std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
+    char * error_code_str = reinterpret_cast<char*>(error_code);
+    
     char error_description[512]; // What's the max length of error description?
     BCAP_HRESULT hr = BCAP_S_OK;
-    hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
+    hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code_str, error_description);
     if FAILED(hr) {
         std::cerr << "Failed to get error description %\n";
     }
@@ -403,7 +403,7 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
             std::cerr << "Failed to execute b-CAP slave move, index "
                 << i << " of " << traj.size() << std::endl;
             
-            std::string err_description = GetErrorDescription(reinterpret_cast<char*>(hr));
+            std::string err_description = GetErrorDescription(hr);
             std::string err_msg = "Failed to execute b-CAP slave move, index " 
                 + std::to_string(i) + " of " + std::to_string(traj.size())
                 + " ErrDescription: " + err_description;
