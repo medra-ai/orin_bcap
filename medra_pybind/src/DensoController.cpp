@@ -44,7 +44,7 @@ void DensoController::bCapOpen() {
     std::cout << "\033[1;32mInitialize and start b-CAP.\033[0m\n";
     BCAP_HRESULT hr = bCap_Open(server_ip_address, server_port_num, &iSockFD);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31bCap_Open failed.\033[0m\n");
+        throw bCapException("\033[1;31bCap_Open failed.\033[0m\n");
     }
 }
 
@@ -52,7 +52,7 @@ void DensoController::bCapClose() {
     std::cout << "\033[1;32mStop b-CAP.\033[0m\n";
     BCAP_HRESULT hr = bCap_Close(iSockFD);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31bCap_Close failed.\033[0m\n");
+        throw bCapException("\033[1;31bCap_Close failed.\033[0m\n");
     }
 }
 
@@ -60,7 +60,7 @@ void DensoController::bCapServiceStart() {
     std::cout << "\033[1;32mStart b-CAP service.\033[0m\n";
     BCAP_HRESULT hr = bCap_ServiceStart(iSockFD);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31bCap_ServiceStart failed.\033[0m\n");
+        throw bCapException("\033[1;31bCap_ServiceStart failed.\033[0m\n");
     }
 }
 
@@ -68,7 +68,7 @@ void DensoController::bCapServiceStop() {
     std::cout << "\033[1;32mStop b-CAP service.\033[0m\n";
     BCAP_HRESULT hr = bCap_ServiceStop(iSockFD);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31mbCap_ServiceStop failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_ServiceStop failed.\033[0m\n");
     }
 }
 
@@ -77,7 +77,7 @@ void DensoController::bCapControllerConnect() {
     std::cout << "server ip address: " << server_ip_address << "..." << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31mbCap_ControllerConnect failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_ControllerConnect failed.\033[0m\n");
     }
 }
 
@@ -85,7 +85,7 @@ void DensoController::bCapControllerDisconnect() {
     std::cout << "Release controller handle.\n";
     BCAP_HRESULT hr = bCap_ControllerDisconnect(iSockFD, lhController);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31mbCap_ControllerDisconnect failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_ControllerDisconnect failed.\033[0m\n");
     }
 }
 
@@ -93,7 +93,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31mbCap_ControllerGetRobot failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_ControllerGetRobot failed.\033[0m\n");
     }
 }
 
@@ -101,7 +101,7 @@ void DensoController::bCapReleaseRobot() {
     std::cout << "Release robot handle.\n";
     BCAP_HRESULT hr = bCap_RobotRelease(iSockFD, lhRobot);
     if FAILED(hr) {
-        throw std::runtime_error("\033[1;31mbCap_RobotRelease failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_RobotRelease failed.\033[0m\n");
     }
 }
 
@@ -293,7 +293,7 @@ void DensoController::bCapEnterProcess() {
         int result = setpriority(PRIO_PROCESS, 0, priority);
         if (result == -1) {
             std::cerr << "Failed to set priority: " << strerror(errno) << std::endl;
-            throw std::runtime_error("Failed to set scheduler priority");
+            throw bCapException("Failed to set scheduler priority");
         }
         // Set scheduler to FIFO
         struct sched_param param;
@@ -301,7 +301,7 @@ void DensoController::bCapEnterProcess() {
         result = sched_setscheduler(0, SCHED_FIFO, &param);
         if (result == -1) {
             std::cerr << "Failed to set scheduler: " << strerror(errno) << std::endl;
-            throw std::runtime_error("Failed to change scheduler");
+            throw bCapException("Failed to change scheduler");
         }
         // end setup realtime
     #endif
@@ -321,20 +321,20 @@ void DensoController::bCapEnterProcess() {
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
     if FAILED(hr) {
         bCapExitProcess();
-        throw std::runtime_error("\033[1;31mFail to clear error.\033[0m\n");
+        throw bCapException("\033[1;31mFail to clear error.\033[0m\n");
     }
 
     hr = ManualReset();
     if FAILED(hr) {
         bCapExitProcess();
-        throw std::runtime_error("\033[1;31mFail to execute manual reset.\033[0m\n");
+        throw bCapException("\033[1;31mFail to execute manual reset.\033[0m\n");
     }
 
     auto arm_mutex = DensoArmMutex(*this);
     hr = bCapMotor(true);
     if FAILED(hr) {
         bCapExitProcess();
-        throw std::runtime_error("\033[1;31mFail to turn motor on.\033[0m\n");
+        throw bCapException("\033[1;31mFail to turn motor on.\033[0m\n");
     }
     current_waypoint_index = 0;
 }
@@ -366,7 +366,7 @@ void DensoController::CommandServoJoint(const std::vector<double> joint_position
     hr = bCapSlvMove(&vntPose, &vntReturn);
     if (FAILED(hr)) {
         std::cerr << "Failed to execute b-CAP slave move";
-        throw std::runtime_error("Failed to execute b-CAP slave move");
+        throw bCapException("Failed to execute b-CAP slave move");
     }
 
     // Print the joint positions

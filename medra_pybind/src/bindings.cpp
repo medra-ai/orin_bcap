@@ -59,6 +59,7 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def_readwrite("trajectory", &RobotTrajectory::trajectory)
     .def("size", &RobotTrajectory::size);
 
+  py::register_exception<bCapException>(m, "bCapException");
   py::register_exception<SlaveMoveException>(m, "SlaveMoveException");
   py::register_exception<EnterSlaveModeException>(m, "EnterSlaveModeException");
   py::register_exception<ExitSlaveModeException>(m, "ExitSlaveModeException");
