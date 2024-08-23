@@ -23,6 +23,36 @@
 
 namespace denso_controller {
 
+// Custom exceptions for ExecuteServoTrajectory
+class SlaveMoveException : public std::exception {
+public:
+    SlaveMoveException(std::string msg) {
+        _err_msg = msg;
+    }
+
+    const char* what() const noexcept override {
+        return _err_msg.c_str();
+    }
+
+private:
+    std::string _err_msg;
+};
+
+class EnterSlaveModeException : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "Failed to ENTER slave mode";
+    }
+};
+
+class ExitSlaveModeException : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "Failed to EXIT slave mode";
+    }
+};
+
+
 class DensoController {
 
 public:

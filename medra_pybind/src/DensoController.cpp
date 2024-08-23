@@ -277,6 +277,7 @@ std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
     hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code_str, error_description);
     if FAILED(hr) {
         std::cerr << "Failed to get error description %\n";
+        return "Failed to get error description";
     }
     return std::string(error_description);
 }
@@ -387,7 +388,7 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
-        throw std::runtime_error("Failed to enter b-CAP slave mode.");
+        throw EnterSlaveModeException();
     }
     std::cout << "Slave mode ON" << std::endl;
 
@@ -404,10 +405,10 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
                 << i << " of " << traj.size() << std::endl;
             
             std::string err_description = GetErrorDescription(hr);
-            std::string err_msg = "Failed to execute b-CAP slave move, index " 
+            std::string err_msg = "Failed to execute slave move, index " 
                 + std::to_string(i) + " of " + std::to_string(traj.size())
                 + " ErrDescription: " + err_description;
-            throw std::runtime_error(err_msg);
+            throw SlaveMoveException(err_msg);
         }
 
         // Print the joint positions
@@ -422,7 +423,7 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
-        throw std::runtime_error("Failed to exit b-CAP slave mode.");
+        throw ExitSlaveModeException();
     }
     std::cout << "Slave mode OFF" << std::endl;
 
