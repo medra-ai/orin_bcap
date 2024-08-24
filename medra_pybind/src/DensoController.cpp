@@ -271,7 +271,7 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
 
 std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
     char * error_code_str = reinterpret_cast<char*>(error_code);
-    
+    std::cout << "Getting description of Error code: " << error_code_str << std::endl;
     char error_description[512]; // What's the max length of error description?
     BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code_str, error_description);
@@ -279,6 +279,7 @@ std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
         std::cerr << "Failed to get error description %\n";
         return "Failed to get error description";
     }
+    std::cout << "Error Description: " << error_description << std::endl;
     return std::string(error_description);
 }
 
@@ -408,6 +409,7 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
             std::string err_msg = "Failed to execute slave move, index " 
                 + std::to_string(i) + " of " + std::to_string(traj.size())
                 + " ErrDescription: " + err_description;
+            std::cerr << err_msg << std::endl;
             throw SlaveMoveException(err_msg);
         }
 
