@@ -2440,7 +2440,10 @@ BCAP_HRESULT Packet_GetResult(BCAP_PACKET *pRecPacket, void *pResult){
                     //memcpy(pResult, (char*)pArgValue->data+BCAP_SIZE_ARGSTRLEN, pArgValue->lArrays);
 
                     for (i = 0; i < pArgValue->lArrays; i++) {
-                        lSize = copyFromBSTR(pDstAscii, pSrcBstr);
+                        lSize = copyFromBSTRAsUTF8(pDstAscii, pSrcBstr);
+                        printf("lsize: %u\n", lSize);
+                        printf("pDstAscii: %s\n", pDstAscii);
+                        printf("pSrcBstr: %s\n", pSrcBstr);
                         pDstAscii += lSize;
                         pSrcBstr += BCAP_SIZE_ARGSTRLEN + ((lSize -1) * 2); /* lSize include Terminator,so (lSize -1) * 2) */
                     }
@@ -2733,7 +2736,7 @@ static uint32_t copyFromBSTRAsUTF8(void *pDstAsciiPtr, void *pSrcBstrPtr){
     pbSrc += BCAP_SIZE_ARGSTRLEN;
     lLen2 = lStrLen;
     if (pbDst != NULL) {
-        char* utf8_str = utf16le_to_utf8(pbSrc, lStrLen);
+        char* utf8_str = utf16le_to_utf8((uint16_t*)pbSrc, lStrLen);
         memcpy(pbDst, utf8_str, lStrLen);
         // add 2 bytes of zeros at the end in case it is utf-16
         *(u_short*)(pbDst+lLen2) = 0;
