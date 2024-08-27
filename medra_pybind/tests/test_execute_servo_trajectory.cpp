@@ -27,7 +27,11 @@ int main(){
 
     denso_controller::DensoController controller = denso_controller::DensoController();
     controller.bCapEnterProcess();
-    controller.SetExtSpeed("100");
+    BCAP_HRESULT speed_hr = controller.SetExtSpeed("100");
+
+    // Test GetErrorDescription
+    std::string err_description = controller.GetErrorDescription(speed_hr);
+    std::cout << "SetExtSpeed err description: " << err_description << std::endl;
 
     // TODO: Add manual reset and clear errors
 
