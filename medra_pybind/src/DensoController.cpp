@@ -44,7 +44,7 @@ void DensoController::bCapOpen() {
     std::cout << "\033[1;32mInitialize and start b-CAP.\033[0m\n";
     BCAP_HRESULT hr = bCap_Open(server_ip_address, server_port_num, &iSockFD);
     if FAILED(hr) {
-        throw bCapException("bCap_Open failed.");
+        throw bCapException("\033[1;31mbCap_Open failed.\033[0m");
     }
 }
 
@@ -52,7 +52,7 @@ void DensoController::bCapClose() {
     std::cout << "\033[1;32mStop b-CAP.\033[0m\n";
     BCAP_HRESULT hr = bCap_Close(iSockFD);
     if FAILED(hr) {
-        throw bCapException("bCap_Close failed.");
+        throw bCapException("\033[1;31mbCap_Close failed.\033[0m");
     }
 }
 
@@ -60,7 +60,7 @@ void DensoController::bCapServiceStart() {
     std::cout << "\033[1;32mStart b-CAP service.\033[0m\n";
     BCAP_HRESULT hr = bCap_ServiceStart(iSockFD);
     if FAILED(hr) {
-        throw bCapException("bCap_ServiceStart failed.");
+        throw bCapException("\033[1;31mbCap_ServiceStart failed.\033[0m");
     }
 }
 
@@ -68,7 +68,7 @@ void DensoController::bCapServiceStop() {
     std::cout << "\033[1;32mStop b-CAP service.\033[0m\n";
     BCAP_HRESULT hr = bCap_ServiceStop(iSockFD);
     if FAILED(hr) {
-        throw bCapException("bCap_ServiceStop failed.");
+        throw bCapException("\033[1;31mbCap_ServiceStop failed.\033[0m");
     }
 }
 
@@ -76,7 +76,7 @@ void DensoController::bCapControllerConnect() {
     std::cout << "Getting controller handle. Server ip address: " << server_ip_address << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerConnect failed.");
+        throw bCapException("\033[1;31mbCap_ControllerConnect failed.\033[0m");
     }
 }
 
@@ -84,7 +84,7 @@ void DensoController::bCapControllerDisconnect() {
     std::cout << "Release controller handle.\n";
     BCAP_HRESULT hr = bCap_ControllerDisconnect(iSockFD, lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerDisconnect failed.");
+        throw bCapException("\033[1;31mbCap_ControllerDisconnect failed.\033[0m");
     }
 }
 
@@ -92,7 +92,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerGetRobot failed.");
+        throw bCapException("\033[1;31mbCap_ControllerGetRobot failed.\033[0m");
     }
 }
 
@@ -100,7 +100,7 @@ void DensoController::bCapReleaseRobot() {
     std::cout << "Release robot handle.\n";
     BCAP_HRESULT hr = bCap_RobotRelease(iSockFD, lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_RobotRelease failed.");
+        throw bCapException("\033[1;31mbCap_RobotRelease failed.\033[0m");
     }
 }
 
