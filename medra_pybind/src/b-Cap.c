@@ -1346,8 +1346,8 @@ BCAP_HRESULT bCap_RobotExecuteSlaveMove(int iSockFd, uint32_t lhRobot, char *pSt
             }
         }
 
-        {   /* R4�z��ňʒu���w�� */
-            pArg = Arg_Create( VT_R4 | VT_ARRAY, 8, sizeof(float) * 8, pfOption);   /* 8���Ԃ� */
+        {   /* R4配列で位置を指定 */
+            pArg = Arg_Create( VT_R4 | VT_ARRAY, 8, sizeof(float) * 8, pfOption);   /* 8軸ぶん */
             if (pArg != NULL) {
                 Packet_AddArg(pSndPacket, pArg);
             }
