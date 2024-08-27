@@ -274,17 +274,14 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
 std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
     char err_code_str[32];
     sprintf(err_code_str, "%d", error_code);
-    std::cout << "Getting description of Error code: " << err_code_str << std::endl;
-    char error_description[1024] = {0}; // What's the max length of error description?
-    // std::string error_description = {};
-    // char* error_description = test.c_str();
+    char error_description[1024] = {0}; // Denso defined local receive buffer LOCALRECBUFFER_SZ = 1024
+
     BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", err_code_str, error_description);
     if FAILED(hr) {
         std::cerr << "Failed to get error description \n";
         return "Failed to get error description";
     }
-    std::cout << "Error Description: " << error_description << std::endl;
     return std::string(error_description);
 }
 
@@ -327,7 +324,7 @@ void DensoController::bCapEnterProcess() {
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
     if FAILED(hr) {
         std::string err_description = GetErrorDescription(hr);
-        std::cerr << "ClearError failed: " << err_description << std::endl;
+        std::cerr << "\033[1;31mClearError failed: " << err_description << "\033[0m" << std::endl;
         bCapExitProcess();
         throw bCapException("\033[1;31mFail to clear error.\033[0m\n");
     }
@@ -335,7 +332,7 @@ void DensoController::bCapEnterProcess() {
     hr = ManualReset();
     if FAILED(hr) {
         std::string err_description = GetErrorDescription(hr);
-        std::cerr << "ManualReset failed: " << err_description << std::endl;
+        std::cerr << "\033[1;31mManualReset failed: " << err_description << "\033[0m" << std::endl;
         bCapExitProcess();
         throw bCapException("\033[1;31mFail to execute manual reset.\033[0m\n");
     }
@@ -344,7 +341,7 @@ void DensoController::bCapEnterProcess() {
     hr = bCapMotor(true);
     if FAILED(hr) {
         std::string err_description = GetErrorDescription(hr);
-        std::cerr << "MotorOn failed: " << err_description << std::endl;
+        std::cerr << "\033[1;31mMotorOn failed: " << err_description << "\033[0m" << std::endl;
         bCapExitProcess();
         throw bCapException("\033[1;31mFail to turn motor on.\033[0m\n");
     }
