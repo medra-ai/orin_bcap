@@ -27,38 +27,29 @@ class bCapException : public std::exception {
 public:
     bCapException(std::string msg) {
         _err_msg = msg;
-        _err_description = "";
     }
 
     bCapException(std::string msg, std::string err_description) {
-        _err_msg = msg;
-        _err_description = err_description;
+        _err_msg = msg + " Description: " + err_description;
     }
 
     const char* what() const noexcept override {
-        if (_err_description != "") {
-            return (_err_msg + ": " + _err_description).c_str();
-        }
         return _err_msg.c_str();
     }
 
 private:
     std::string _err_msg;
-    std::string _err_description;
 };
 
 // Custom exceptions for ExecuteServoTrajectory
 class SlaveMoveException : public std::exception {
 public:
     SlaveMoveException(std::string msg="") {
-        _err_msg = msg;
+        _err_msg = "Failed to Execute SlaveMove " + msg;
     }
 
     const char* what() const noexcept override {
-        if (_err_msg == "") {
-            return "Failed to Execute SlaveMove";
-        }
-        return ("Failed to Execute SlaveMove: " + _err_msg).c_str();
+        return _err_msg.c_str();
     }
 
 private:
@@ -67,14 +58,11 @@ private:
 class EnterSlaveModeException : public std::exception {
 public:
     EnterSlaveModeException(std::string msg="") {
-        _err_msg = msg;
+        _err_msg = "Failed to ENTER slave mode " + msg;
     }
 
     const char* what() const noexcept override {
-        if (_err_msg == "") {
-            return "Failed to ENTER slave mode";
-        }
-        return ("Failed to ENTER slave mode: " + _err_msg).c_str();
+        return _err_msg.c_str();
     }
 private:
     std::string _err_msg;
@@ -82,14 +70,11 @@ private:
 class ExitSlaveModeException : public std::exception {
 public:
     ExitSlaveModeException(std::string msg="") {
-        _err_msg = msg;
+        _err_msg = "Failed to EXIT slave mode " + msg;
     }
 
     const char* what() const noexcept override {
-        if (_err_msg == "") {
-            return "Failed to EXIT slave mode";
-        }
-        return ("Failed to EXIT slave mode: " + _err_msg).c_str();
+        return _err_msg.c_str();
     }
 private:
     std::string _err_msg;
