@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <wchar.h>
 
 /* OS Switching */
 #ifdef _MSC_VER
@@ -196,6 +198,7 @@ static uint32_t         sizeOfVarType(u_short iType);
 static uint32_t         copyValue(void *pDst, const void *pVntValue, uint32_t lLength);
 static uint32_t         copyToBSTR(void *pbDstPtr, const void *pbSrcPtr);
 static uint32_t         copyFromBSTR(void *pDstAsciiPtr, void *pSrcBstrPtr);
+static uint32_t         copyFromBSTRAsUTF8(void *pDstAsciiPtr, void *pSrcBstrPtr);
 static void             *bMalloc(size_t size);
 static void             bFree(void *pPtr);
 
@@ -1343,8 +1346,8 @@ BCAP_HRESULT bCap_RobotExecuteSlaveMove(int iSockFd, uint32_t lhRobot, char *pSt
             }
         }
 
-        {   /* R4”z—ñ‚ÅˆÊ’u‚ðŽw’è */
-            pArg = Arg_Create( VT_R4 | VT_ARRAY, 8, sizeof(float) * 8, pfOption);   /* 8Ž²‚Ô‚ñ */
+        {   /* R4ï¿½zï¿½ï¿½ÅˆÊ’uï¿½ï¿½ï¿½wï¿½ï¿½ */
+            pArg = Arg_Create( VT_R4 | VT_ARRAY, 8, sizeof(float) * 8, pfOption);   /* 8ï¿½ï¿½ï¿½Ô‚ï¿½ */
             if (pArg != NULL) {
                 Packet_AddArg(pSndPacket, pArg);
             }
@@ -2689,6 +2692,49 @@ static uint32_t copyFromBSTR(void *pDstAsciiPtr, void *pSrcBstrPtr){
     lLen2 = lStrLen;
     if (pbDst != NULL) {
         memcpy(pbDst, pbSrc, lLen2);
+        // add 2 bytes of zeros at the end in case it is utf-16
+        *(u_short*)(pbDst+lLen2) = 0;
+        lLen2 += sizeof(u_short);
+    }
+    return (lLen2);
+}
+
+// Function to convert UTF-16LE to UTF-8
+char* utf16le_to_utf8(const uint16_t* utf16_str, size_t utf16_len) {
+    wchar_t* wide_str = malloc((utf16_len + 1) * sizeof(wchar_t));
+    for (size_t i = 0; i < utf16_len; i++) {
+        wide_str[i] = utf16_str[i];
+    }
+    wide_str[utf16_len] = L'\0';
+
+    size_t utf8_len = wcstombs(NULL, wide_str, 0);
+    char* utf8_str = malloc(utf8_len + 1);
+    wcstombs(utf8_str, wide_str, utf8_len + 1);
+
+    free(wide_str);
+    return utf8_str;
+}
+
+/**	Convert From BSTR into AsciiZ
+ * NOTE: This function is used to convert BSTR to UTF-8
+ *
+ * Convert Send a b-Cap packet and Receive a Packet
+ *
+ *	@param	pDstPtr		:	[out]  String pointer in AsciiZ
+ *	@param	pSrcPtr		:	[in]  BSTR pointer
+ *	@retval	total size of BSTR is returned.
+ *
+ */
+static uint32_t copyFromBSTRAsUTF8(void *pDstAsciiPtr, void *pSrcBstrPtr){
+    u_char *pbDst = (u_char *)pDstAsciiPtr;
+    u_char *pbSrc = (u_char *)pSrcBstrPtr;
+    uint32_t lStrLen,lLen2;
+    copyValue(&lStrLen, pbSrc, BCAP_SIZE_ARGSTRLEN);                    /* Get BStr length */
+    pbSrc += BCAP_SIZE_ARGSTRLEN;
+    lLen2 = lStrLen;
+    if (pbDst != NULL) {
+        char* utf8_str = utf16le_to_utf8(pbSrc, lStrLen);
+        memcpy(pbDst, utf8_str, lStrLen);
         // add 2 bytes of zeros at the end in case it is utf-16
         *(u_short*)(pbDst+lLen2) = 0;
         lLen2 += sizeof(u_short);
