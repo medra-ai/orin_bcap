@@ -6,6 +6,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 
+#include "logging.hpp"
 #include "DensoController.hpp"
 
 namespace py = pybind11;
@@ -89,7 +90,11 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>())
 
     // High level commands
-    .def("bCapEnterProcess", &DensoController::bCapEnterProcess, py::call_guard<py::gil_scoped_release>())
+    .def("bCapEnterProcess", [](DensoController &dc) {
+      setup_pybind11_logging();
+      return dc.bCapEnterProcess();
+    }, py::call_guard<py::gil_scoped_release>())
+
     .def("bCapExitProcess", &DensoController::bCapExitProcess, py::call_guard<py::gil_scoped_release>())
     .def("CommandServoJoint", &DensoController::CommandServoJoint, py::call_guard<py::gil_scoped_release>())
     .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>())

@@ -17,11 +17,10 @@ set(SOURCES
 # Cmake version policy
 cmake_policy(SET CMP0057 NEW)
 set (CMAKE_CXX_STANDARD 11)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Include dir
-include_directories(
-  include
-)
+include_directories(include)
 
 # Include stdint.h
 if(MSVC AND "${_VS_VER}" MATCHES [[v([0-9]?[0-9])]])
@@ -32,28 +31,27 @@ if(MSVC AND "${_VS_VER}" MATCHES [[v([0-9]?[0-9])]])
   endif("${CMAKE_MATCH_1}" LESS 10)
 endif(MSVC AND "${_VS_VER}" MATCHES [[v([0-9]?[0-9])]])
 
+
+# Include spdlog
+include(FetchContent)
+
+FetchContent_Declare(spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.14.1
+)
+FetchContent_MakeAvailable(spdlog)
+
+
 # Pybind
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
-# Specify path to Orin bCAP library and its headers
-# set(EXTERNAL_LIB_PATH /workspaces/orin_bcap/C)
-# set(EXTERNAL_LIB ${EXTERNAL_LIB_PATH}/build/libbcap_client.so)
-# set(EXTERNAL_INCLUDE_PATH ${EXTERNAL_LIB_PATH}/include)
-
-
 # Add the pybind module
 pybind11_add_module(_${MODULE_NAME} ${SOURCES})
-
-# Include the bCAP headers
-# target_include_directories(${MODULE_NAME} PRIVATE ${EXTERNAL_INCLUDE_PATH})
+target_link_libraries(_${MODULE_NAME} PRIVATE spdlog::spdlog)
 
 add_executable(test_execute_servo_trajectory tests/test_execute_servo_trajectory.cpp src/DensoController.cpp src/b-Cap.c)
-target_include_directories(test_execute_servo_trajectory PRIVATE include)
-# target_link_libraries(test_execute_servo_trajectory PRIVATE ${EXTERNAL_LIB})
-
-# Link the bCAP library
-# target_link_libraries(${MODULE_NAME} PRIVATE ${EXTERNAL_LIB})
+target_link_libraries(test_execute_servo_trajectory PRIVATE spdlog::spdlog)
 
 add_custom_target(generate_stub ALL
     COMMAND ${Python_EXECUTABLE} "-m" "pybind11_stubgen" "-o${CMAKE_CURRENT_BINARY_DIR}" "_${MODULE_NAME}"
@@ -67,7 +65,6 @@ add_custom_target(rename_pyi ALL
     WORKING_DIRECTORY $<TARGET_FILE_DIR:_${MODULE_NAME}>
     DEPENDS generate_stub
 )
-
 
 # Install the module
 install(TARGETS _${MODULE_NAME} DESTINATION "${MODULE_NAME}")
