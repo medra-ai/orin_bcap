@@ -1,3 +1,6 @@
+#ifndef util_hpp
+#define util_hpp
+
 #include <vector>
 #include <cstddef>
 
@@ -15,3 +18,5 @@ struct RobotTrajectory {
     return trajectory.size();
   }
 };
+
+#endif // util_hpp

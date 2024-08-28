@@ -3,6 +3,9 @@
  * Based on https://github.com/quangounet/denso/blob/master/cpp/src/DensoController.h
  */ 
 
+#ifndef DensoController_hpp
+#define DensoController_hpp
+
 #include "b-Cap.h"
 #include "util.hpp"
 #include <exception>
@@ -152,3 +155,5 @@ double Rad2Deg(double x);
 double Deg2Rad(double x);
 
 } // close namespace denso_controller
+
+#endif // DensoController_hpp
