@@ -53,17 +53,16 @@ PYBIND11_MODULE(_medra_bcap, m) {
                   [](BCAP_VARIANT &v) { return reinterpret_cast<uintptr_t>(v.Value.Data); },
                   [](BCAP_VARIANT &v, uintptr_t data) { v.Value.Data = reinterpret_cast<void*>(data); });
 
-  py::class_<bCapException>(m, "bCapException")
-    .def(py::init<>())
-    .def(py::init<const std::string&, int>());
-    // .def("error_code", &bCapException::error_code)
-    // .def("error_description", &bCapException::error_description);
-
   py::class_<RobotTrajectory>(m, "RobotTrajectory")
     .def(py::init<>())
     .def_readonly("dimension", &RobotTrajectory::dimension)
     .def_readwrite("trajectory", &RobotTrajectory::trajectory)
     .def("size", &RobotTrajectory::size);
+
+  py::register_exception<bCapException>(m, "bCapException");
+  py::register_exception<SlaveMoveException>(m, "SlaveMoveException");
+  py::register_exception<EnterSlaveModeException>(m, "EnterSlaveModeException");
+  py::register_exception<ExitSlaveModeException>(m, "ExitSlaveModeException");
 
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<>())
@@ -77,17 +76,17 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("bCapControllerDisconnect", &DensoController::bCapControllerDisconnect, py::call_guard<py::gil_scoped_release>())
     .def("bCapGetRobot", &DensoController::bCapGetRobot, py::call_guard<py::gil_scoped_release>())
     .def("bCapReleaseRobot", &DensoController::bCapReleaseRobot, py::call_guard<py::gil_scoped_release>())
+    .def("bCapClearError", &DensoController::bCapClearError, py::call_guard<py::gil_scoped_release>())
     .def("bCapRobotExecute", &DensoController::bCapRobotExecute, py::call_guard<py::gil_scoped_release>())
     .def("bCapRobotMove", &DensoController::bCapRobotMove, py::call_guard<py::gil_scoped_release>())
     .def("bCapMotor", &DensoController::bCapMotor, py::call_guard<py::gil_scoped_release>())
     .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode, py::call_guard<py::gil_scoped_release>())
     .def("bCapSlvMove", &DensoController::bCapSlvMove, py::call_guard<py::gil_scoped_release>())
     .def("SetExtSpeed", &DensoController::SetExtSpeed, py::call_guard<py::gil_scoped_release>())
-    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>()) // Untested
-    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>()) // Untested
-    .def("ChangeTool", &DensoController::ChangeTool, py::call_guard<py::gil_scoped_release>()) // Untested, alternative to SetTcpLoad?
-    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>()) // Untested
-    // .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>()) // Untested
+    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>())
+    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>())
+    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>())
+    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>())
 
     // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess, py::call_guard<py::gil_scoped_release>())

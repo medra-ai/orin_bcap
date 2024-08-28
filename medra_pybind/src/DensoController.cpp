@@ -22,6 +22,7 @@ namespace denso_controller {
 
 DensoArmMutex::DensoArmMutex(DensoController &controller) : _controller(controller) {
     _controller.bCapRobotExecute("TakeArm", "");
+    _controller.bCapRobotExecute("Motor", "1");
 }
 
 DensoArmMutex::~DensoArmMutex() {
@@ -32,6 +33,10 @@ DensoArmMutex::~DensoArmMutex() {
 DensoController::DensoController() {
     server_ip_address = DEFAULT_SERVER_IP_ADDRESS;
     server_port_num = DEFAULT_SERVER_PORT_NUM;
+    iSockFD = 0;
+    lhController = 0;
+    lhRobot = 0;
+    current_waypoint_index = 0;
 }
 
 ////////////////////////////// Low Level Commands //////////////////////////////
@@ -40,7 +45,7 @@ void DensoController::bCapOpen() {
     std::cout << "\033[1;32mInitialize and start b-CAP.\033[0m\n";
     BCAP_HRESULT hr = bCap_Open(server_ip_address, server_port_num, &iSockFD);
     if FAILED(hr) {
-        throw bCapException("\033[1;31bCap_Open failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_Open failed.\033[0m");
     }
 }
 
@@ -48,7 +53,7 @@ void DensoController::bCapClose() {
     std::cout << "\033[1;32mStop b-CAP.\033[0m\n";
     BCAP_HRESULT hr = bCap_Close(iSockFD);
     if FAILED(hr) {
-        throw bCapException("\033[1;31bCap_Close failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_Close failed.\033[0m");
     }
 }
 
@@ -56,7 +61,7 @@ void DensoController::bCapServiceStart() {
     std::cout << "\033[1;32mStart b-CAP service.\033[0m\n";
     BCAP_HRESULT hr = bCap_ServiceStart(iSockFD);
     if FAILED(hr) {
-        throw bCapException("\033[1;31bCap_ServiceStart failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_ServiceStart failed.\033[0m");
     }
 }
 
@@ -64,16 +69,15 @@ void DensoController::bCapServiceStop() {
     std::cout << "\033[1;32mStop b-CAP service.\033[0m\n";
     BCAP_HRESULT hr = bCap_ServiceStop(iSockFD);
     if FAILED(hr) {
-        throw bCapException("\033[1;31mbCap_ServiceStop failed.\033[0m\n");
+        throw bCapException("\033[1;31mbCap_ServiceStop failed.\033[0m");
     }
 }
 
 void DensoController::bCapControllerConnect() {
-    std::cout << "Get controller handle.\n";
-    std::cout << "server ip address: " << server_ip_address << "..." << std::endl;
+    std::cout << "Getting controller handle. Server ip address: " << server_ip_address << std::endl;
     BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerConnect failed.\n");
+        throw bCapException("\033[1;31mbCap_ControllerConnect failed.\033[0m");
     }
 }
 
@@ -81,7 +85,7 @@ void DensoController::bCapControllerDisconnect() {
     std::cout << "Release controller handle.\n";
     BCAP_HRESULT hr = bCap_ControllerDisconnect(iSockFD, lhController);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerDisconnect failed.\n");
+        throw bCapException("\033[1;31mbCap_ControllerDisconnect failed.\033[0m");
     }
 }
 
@@ -89,7 +93,7 @@ void DensoController::bCapGetRobot() {
     std::cout << "Get robot handle.\n";
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_ControllerDisconnect failed.\n");
+        throw bCapException("\033[1;31mbCap_ControllerGetRobot failed.\033[0m");
     }
 }
 
@@ -97,8 +101,14 @@ void DensoController::bCapReleaseRobot() {
     std::cout << "Release robot handle.\n";
     BCAP_HRESULT hr = bCap_RobotRelease(iSockFD, lhRobot);
     if FAILED(hr) {
-        throw bCapException("bCap_RobotRelease failed.\n");
+        throw bCapException("\033[1;31mbCap_RobotRelease failed.\033[0m");
     }
+}
+
+BCAP_HRESULT DensoController::bCapClearError() {
+    long lResult;
+    BCAP_HRESULT hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
+    return hr;
 }
 
 BCAP_HRESULT DensoController::bCapRobotExecute(const char* command, const char* option) {
@@ -127,30 +137,35 @@ BCAP_HRESULT DensoController::bCapMotor(bool command) {
 
 BCAP_HRESULT DensoController::bCapSlvChangeMode(const char* mode) {
     BCAP_HRESULT hr = bCapRobotExecute("slvChangeMode", mode);
-    if SUCCEEDED(hr) {
-        long lResult;
-        BCAP_HRESULT hr1 = bCap_RobotExecute(iSockFD, lhRobot, "slvGetMode", "", &lResult);
-        if (lResult > 512) {
-            std::cout << "Changed to mode 2 ";
-            if (lResult == 513) std::cout << "P-type.\n";
-            if (lResult == 514) std::cout << "J-type.\n";
-            if (lResult == 515) std::cout << "T-type.\n";
-        }
-        else if (lResult > 256) {
-            std::cout << "Changed to mode 1 ";
-            if (lResult == 257) std::cout << "P-type.\n";
-            if (lResult == 258) std::cout << "J-type.\n";
-            if (lResult == 259) std::cout << "T-type.\n";
-        }
-        else if (lResult > 0) {
-            std::cout << "Changed to mode 0 ";
-            if (lResult == 1) std::cout << "P-type.\n";
-            if (lResult == 2) std::cout << "J-type.\n";
-            if (lResult == 3) std::cout << "T-type.\n";
-        }
-        else {
-            std::cout << "Released slave mode.\n";
-        }
+    if FAILED(hr) {
+        throw bCapException("\033[1;31mbCap_SlvChangeMode failed.\033[0m");
+    }
+    return hr;
+}
+
+BCAP_HRESULT DensoController::printSlvMode() {
+    long lResult;
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "slvGetMode", "", &lResult);
+    if (lResult > 512) {
+        std::cout << "Slave mode 2 ";
+        if (lResult == 513) std::cout << "P-type.\n";
+        if (lResult == 514) std::cout << "J-type.\n";
+        if (lResult == 515) std::cout << "T-type.\n";
+    }
+    else if (lResult > 256) {
+        std::cout << "Slave mode 1 ";
+        if (lResult == 257) std::cout << "P-type.\n";
+        if (lResult == 258) std::cout << "J-type.\n";
+        if (lResult == 259) std::cout << "T-type.\n";
+    }
+    else if (lResult > 0) {
+        std::cout << "Slave mode 0 ";
+        if (lResult == 1) std::cout << "P-type.\n";
+        if (lResult == 2) std::cout << "J-type.\n";
+        if (lResult == 3) std::cout << "T-type.\n";
+    }
+    else {
+        std::cout << "Released slave mode.\n";
     }
     return hr;
 }
@@ -168,7 +183,7 @@ BCAP_HRESULT DensoController::SetExtSpeed(const char* speed) {
     BCAP_HRESULT hr;
     hr = bCapRobotExecute("ExtSpeed", speed);
     if SUCCEEDED(hr) {
-        std::cout << "External speed is set to " << speed << " %\n";
+        std::cout << "External speed is set to " << speed << std::endl;
     }
     return hr;
 }
@@ -178,7 +193,7 @@ BCAP_HRESULT DensoController::ManualReset() {
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ManualReset", "", &lResult);
     if SUCCEEDED(hr) {
-        std::cout << "Executed Manual Reset %\n";
+        std::cout << "Executed Manual Reset" << std::endl;
     }
     return hr;
 }
@@ -194,21 +209,18 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
     uint32_t lhVar;
     hr = bCap_RobotGetVariable(iSockFD, lhRobot, "@CURRENT_TOOL", "", &lhVar);   /* Get var handle */
     if FAILED(hr) {
-        std::cerr << "Set TCP Load failed to get @CURRENT_TOOL variable %\n";
+        std::cerr << "Set TCP Load failed to get @CURRENT_TOOL variable" << std::endl;
         return hr;
     }
 
     hr = bCap_VariablePutValue(iSockFD, lhVar, VT_I4, 1, &lValue);      /* Put Value */
-    if SUCCEEDED(hr){
-        std::cout << "Set TCP Load successful %\n";
-    }
-    else {
-        std::cerr << "Set TCP Load failed to put value %\n";
+    if FAILED(hr) {
+        std::cerr << "Set TCP Load failed to put value" << std::endl;
     }
 
-    hr = bCap_VariableRelease(iSockFD, lhVar);	
+    hr = bCap_VariableRelease(iSockFD, lhVar);	/* Release var handle*/
     if FAILED(hr) {
-        std::cerr << "Set TCP Load failed to release variable %\n";
+        std::cerr << "Set TCP Load failed to release variable" << std::endl;
     }
 
     return hr;
@@ -224,10 +236,10 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     BCAP_HRESULT hr;
     hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
     if SUCCEEDED(hr) {
-        std::cout << "Tool changed to " << tool_name << " %\n";
+        std::cout << "Tool changed to " << tool_name << std::endl;
     }
     else {
-        std::cerr << "Failed to change tool %\n";
+        std::cerr << "Failed to change tool" << std::endl;
     }
 
     return hr;
@@ -242,7 +254,7 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
     BCAP_HRESULT hr = BCAP_S_OK;
     hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
     if FAILED(hr) {
-        std::cerr << "Failed to get mounting calibration %\n";
+        std::cerr << "Failed to get mounting calibration" << std::endl;
         return {hr, mounting_calib};
     }
 
@@ -259,21 +271,25 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
     return {hr, mounting_calib};
 }
 
-// std::string DensoController::GetErrorDescription(const char* error_code) {
-//     char error_description[512]; // What's the max length of error description?
-//     BCAP_HRESULT hr = BCAP_S_OK;
-//     hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", error_code, error_description);
-//     if FAILED(hr) {
-//         std::cerr << "Failed to get error description %\n";
-//     }
-//     return std::string(error_description);
-// }
+std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
+    char err_code_str[32];
+    sprintf(err_code_str, "%d", error_code);
+    char error_description[1024] = {0}; // Denso defined local receive buffer LOCALRECBUFFER_SZ = 1024
+
+    BCAP_HRESULT hr = BCAP_S_OK;
+    hr = bCap_ControllerExecute(iSockFD, lhController, "GetErrorDescription", err_code_str, error_description);
+    if FAILED(hr) {
+        return "Failed to get error description";
+    }
+    return std::string(error_description);
+}
 
 ////////////////////////////// High Level Commands //////////////////////////////
 
 void DensoController::bCapEnterProcess() {
     // Only set priority on Linux machines
-    #ifdef __linux__
+    // #ifdef __linux__
+    #ifdef false
         // start setup realtime
         // Set process priority (nice value)
         int priority = -9;
@@ -296,7 +312,9 @@ void DensoController::bCapEnterProcess() {
     BCAP_HRESULT hr;
 
     bCapOpen();
+    std::cout << "b-Cap port opened" << std::endl;
     bCapServiceStart();
+    std::cout << "b-Cap service started" << std::endl;
     bCapControllerConnect();
     std::cout << "Connected to controller" << std::endl;
     bCapGetRobot();
@@ -305,21 +323,27 @@ void DensoController::bCapEnterProcess() {
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
     if FAILED(hr) {
+        std::string err_description = GetErrorDescription(hr);
+        std::cerr << "\033[1;31mClearError failed: " << err_description << "\033[0m" << std::endl;
         bCapExitProcess();
-        throw bCapException("\033[1;31mFail to clear error.\033[0m\n");
+        throw bCapException("\033[1;31mFail to clear error.\033[0m", err_description);
     }
 
     hr = ManualReset();
     if FAILED(hr) {
+        std::string err_description = GetErrorDescription(hr);
+        std::cerr << "\033[1;31mManualReset failed: " << err_description << "\033[0m" << std::endl;
         bCapExitProcess();
-        throw bCapException("\033[1;31mFail to execute manual reset.\033[0m\n");
+        throw bCapException("\033[1;31mFail to execute manual reset.\033[0m", err_description);
     }
 
     auto arm_mutex = DensoArmMutex(*this);
     hr = bCapMotor(true);
     if FAILED(hr) {
+        std::string err_description = GetErrorDescription(hr);
+        std::cerr << "\033[1;31mMotorOn failed: " << err_description << "\033[0m" << std::endl;
         bCapExitProcess();
-        throw bCapException("\033[1;31mFail to turn motor on.\033[0m\n");
+        throw bCapException("\033[1;31mFail to turn motor on.\033[0m", err_description);
     }
     current_waypoint_index = 0;
 }
@@ -328,7 +352,7 @@ void DensoController::bCapExitProcess() {
     BCAP_HRESULT hr;
     hr = bCapMotor(false);
     if FAILED(hr) {
-        std::cout << "\033[1;31mFail to turn off motor.\033[0m\n";
+        std::cerr << "Fail to turn off motor" << std::endl;
     }
 
     bCapReleaseRobot();
@@ -344,14 +368,14 @@ void DensoController::bCapExitProcess() {
  * @param joint_position Vector of 8 DOF joint positions in Radians.
  * @return 0 if successful, 1 otherwise.
  */
-BCAP_HRESULT DensoController::CommandServoJoint(const std::vector<double> joint_position) {
+void DensoController::CommandServoJoint(const std::vector<double> joint_position) {
     BCAP_HRESULT hr = BCAP_S_OK;
     BCAP_VARIANT vntPose, vntReturn;
     vntPose = VNTFromRadVector(joint_position);
     hr = bCapSlvMove(&vntPose, &vntReturn);
     if (FAILED(hr)) {
-        std::cerr << "Failed to execute b-CAP slave move";
-        return hr;
+        std::string err_description = GetErrorDescription(hr);
+        throw bCapException("Failed CommandServoJoint slave move", err_description);
     }
 
     // Print the joint positions
@@ -360,10 +384,9 @@ BCAP_HRESULT DensoController::CommandServoJoint(const std::vector<double> joint_
     //     std::cout << joint_position[i] << ' ';
     // std::cout << ")" << std::endl;
     
-    return hr;
 }
 
-BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
+void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
 {
     BCAP_HRESULT hr;
     long lResult;
@@ -374,9 +397,10 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
         std::cerr << "Failed to enter b-CAP slave mode." << std::endl;
-        return hr;
+        std::string err_description = GetErrorDescription(hr);
+        throw EnterSlaveModeException(err_description);
     }
-    std::cout << "Slave mode ON" << std::endl;
+    // std::cout << "Slave mode ON" << std::endl;
 
     // Execute the trajectory
     BCAP_VARIANT vntPose, vntReturn;
@@ -387,9 +411,12 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         hr = bCapSlvMove(&vntPose, &vntReturn);
 
         if (FAILED(hr)) {
-            std::cerr << "Failed to execute b-CAP slave move, index "
-                << i << " of " << traj.size() << std::endl;
-            return hr;
+            std::cerr << "Failed to execute b-CAP slave move." << std::endl;
+            
+            std::string err_description = GetErrorDescription(hr);
+            std::string msg = "Index " + std::to_string(i) + " of " + std::to_string(traj.size())
+                + " ErrDescription: " + err_description;
+            throw SlaveMoveException(msg);
         }
 
         // Print the joint positions
@@ -398,17 +425,17 @@ BCAP_HRESULT DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         //     std::cout << joint_position[i] << ' ';
         // std::cout << ")" << std::endl;
     }
-    std::cout << "Exec traj done" << std::endl;
+    // std::cout << "Exec traj done" << std::endl;
 
     // Exit slave mode
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
         std::cerr << "Failed to exit b-CAP slave mode." << std::endl;
-        return hr;
+        std::string err_description = GetErrorDescription(hr);
+        throw ExitSlaveModeException(err_description);
     }
-    std::cout << "Slave mode OFF" << std::endl;
+    // std::cout << "Slave mode OFF" << std::endl;
 
-    return hr;
 }
 
 
@@ -438,9 +465,7 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetCurJnt() {
     }
     for (int i = 0; i < 8; i++) {
         jnt[i] = dJnt[i];
-        std::cout << dJnt[i] << " ";
     }
-    std::cout << std::endl;
     return {hr, jnt};
 }
 

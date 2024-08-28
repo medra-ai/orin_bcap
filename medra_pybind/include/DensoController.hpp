@@ -25,28 +25,61 @@ namespace denso_controller {
 
 class bCapException : public std::exception {
 public:
-    bCapException() : std::exception(), _s("Unknown exception"), _errorcode(0) {
-    }
-    bCapException(const std::string& s, int errorcode = 0) : std::exception() {
-        _s = s;
-        _errorcode = errorcode;
+    bCapException(std::string msg) {
+        _err_msg = msg;
     }
 
-    virtual ~bCapException() throw() {
+    bCapException(std::string msg, std::string err_description) {
+        _err_msg = msg + " Description: " + err_description;
     }
 
-    int error_code() const {
-        return _errorcode;
-    }
-
-    std::string error_description() const {
-        return _s;
+    const char* what() const noexcept override {
+        return _err_msg.c_str();
     }
 
 private:
-    std::string _s;
-    int _errorcode;
+    std::string _err_msg;
 };
+
+// Custom exceptions for ExecuteServoTrajectory
+class SlaveMoveException : public std::exception {
+public:
+    SlaveMoveException(std::string msg="") {
+        _err_msg = "Failed to Execute SlaveMove " + msg;
+    }
+
+    const char* what() const noexcept override {
+        return _err_msg.c_str();
+    }
+
+private:
+    std::string _err_msg;
+};
+class EnterSlaveModeException : public std::exception {
+public:
+    EnterSlaveModeException(std::string msg="") {
+        _err_msg = "Failed to ENTER slave mode " + msg;
+    }
+
+    const char* what() const noexcept override {
+        return _err_msg.c_str();
+    }
+private:
+    std::string _err_msg;
+};
+class ExitSlaveModeException : public std::exception {
+public:
+    ExitSlaveModeException(std::string msg="") {
+        _err_msg = "Failed to EXIT slave mode " + msg;
+    }
+
+    const char* what() const noexcept override {
+        return _err_msg.c_str();
+    }
+private:
+    std::string _err_msg;
+};
+
 
 class DensoController {
 
@@ -62,23 +95,25 @@ public:
     void bCapControllerDisconnect();
     void bCapGetRobot();
     void bCapReleaseRobot();
+    BCAP_HRESULT bCapClearError();
     BCAP_HRESULT bCapRobotExecute(const char* command, const char* option);
     BCAP_HRESULT bCapRobotMove(const char* pose, const char* option);
     BCAP_HRESULT bCapMotor(bool command);
     BCAP_HRESULT bCapSlvChangeMode(const char* mode);
+    BCAP_HRESULT printSlvMode();
     BCAP_HRESULT bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
     BCAP_HRESULT SetExtSpeed(const char* speed);
     BCAP_HRESULT ManualReset();
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
-    // std::string GetErrorDescription(const char* error_code);
+    std::string GetErrorDescription(BCAP_HRESULT error_code);
 
     // high level commands
     void bCapEnterProcess();
     void bCapExitProcess();
-    BCAP_HRESULT CommandServoJoint(const std::vector<double> joint_position);
-    BCAP_HRESULT ExecuteServoTrajectory(RobotTrajectory& traj);
+    void CommandServoJoint(const std::vector<double> joint_position);
+    void ExecuteServoTrajectory(RobotTrajectory& traj);
 
     // utilities
     const char* CommandFromVector(std::vector<double> q);
@@ -108,7 +143,6 @@ public:
 private:
     DensoController &_controller;
 };
-
 
 
 ////////////////////////////// Utilities //////////////////////////////
