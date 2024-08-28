@@ -2737,8 +2737,8 @@ static uint32_t copyFromBSTRAsUTF8(void *pDstAsciiPtr, void *pSrcBstrPtr){
         memcpy(pbDst, utf8_str, lStrLen);
         free(utf8_str);
         // add 2 bytes of zeros at the end in case it is utf-16
-        *(u_short*)(pbDst+lLen2) = 0;
-        lLen2 += sizeof(u_short);
+        // *(u_short*)(pbDst+lLen2) = 0;
+        // lLen2 += sizeof(u_short);
     }
     return (lLen2);
 }
