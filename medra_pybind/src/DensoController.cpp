@@ -137,30 +137,35 @@ BCAP_HRESULT DensoController::bCapMotor(bool command) {
 
 BCAP_HRESULT DensoController::bCapSlvChangeMode(const char* mode) {
     BCAP_HRESULT hr = bCapRobotExecute("slvChangeMode", mode);
-    if SUCCEEDED(hr) {
-        // long lResult;
-        // BCAP_HRESULT hr1 = bCap_RobotExecute(iSockFD, lhRobot, "slvGetMode", "", &lResult);
-        // if (lResult > 512) {
-        //     std::cout << "Changed to mode 2 ";
-        //     if (lResult == 513) std::cout << "P-type.\n";
-        //     if (lResult == 514) std::cout << "J-type.\n";
-        //     if (lResult == 515) std::cout << "T-type.\n";
-        // }
-        // else if (lResult > 256) {
-        //     std::cout << "Changed to mode 1 ";
-        //     if (lResult == 257) std::cout << "P-type.\n";
-        //     if (lResult == 258) std::cout << "J-type.\n";
-        //     if (lResult == 259) std::cout << "T-type.\n";
-        // }
-        // else if (lResult > 0) {
-        //     std::cout << "Changed to mode 0 ";
-        //     if (lResult == 1) std::cout << "P-type.\n";
-        //     if (lResult == 2) std::cout << "J-type.\n";
-        //     if (lResult == 3) std::cout << "T-type.\n";
-        // }
-        // else {
-        //     std::cout << "Released slave mode.\n";
-        // }
+    if FAILED(hr) {
+        throw bCapException("\033[1;31mbCap_SlvChangeMode failed.\033[0m");
+    }
+    return hr;
+}
+
+BCAP_HRESULT DensoController::printSlvMode() {
+    long lResult;
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "slvGetMode", "", &lResult);
+    if (lResult > 512) {
+        std::cout << "Slave mode 2 ";
+        if (lResult == 513) std::cout << "P-type.\n";
+        if (lResult == 514) std::cout << "J-type.\n";
+        if (lResult == 515) std::cout << "T-type.\n";
+    }
+    else if (lResult > 256) {
+        std::cout << "Slave mode 1 ";
+        if (lResult == 257) std::cout << "P-type.\n";
+        if (lResult == 258) std::cout << "J-type.\n";
+        if (lResult == 259) std::cout << "T-type.\n";
+    }
+    else if (lResult > 0) {
+        std::cout << "Slave mode 0 ";
+        if (lResult == 1) std::cout << "P-type.\n";
+        if (lResult == 2) std::cout << "J-type.\n";
+        if (lResult == 3) std::cout << "T-type.\n";
+    }
+    else {
+        std::cout << "Released slave mode.\n";
     }
     return hr;
 }

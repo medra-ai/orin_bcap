@@ -83,11 +83,10 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode, py::call_guard<py::gil_scoped_release>())
     .def("bCapSlvMove", &DensoController::bCapSlvMove, py::call_guard<py::gil_scoped_release>())
     .def("SetExtSpeed", &DensoController::SetExtSpeed, py::call_guard<py::gil_scoped_release>())
-    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>()) // Untested
-    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>()) // Untested
-    .def("ChangeTool", &DensoController::ChangeTool, py::call_guard<py::gil_scoped_release>()) // Untested, alternative to SetTcpLoad?
-    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>()) // Untested
-    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>()) // Untested
+    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>())
+    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>())
+    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>())
+    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>())
 
     // High level commands
     .def("bCapEnterProcess", &DensoController::bCapEnterProcess, py::call_guard<py::gil_scoped_release>())
