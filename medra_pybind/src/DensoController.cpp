@@ -471,7 +471,7 @@ void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypo
     char buffer[256] = {0};
     std::sprintf(buffer, "Before closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
                 joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
-    SPDLOG_INFO(std::string(buffer));
+    SPDLOG_DEBUG(std::string(buffer));
 
     int count = 0;
     while (true) {
@@ -513,7 +513,7 @@ void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypo
     std::memset(buffer, 0, sizeof(buffer));
     std::sprintf(buffer, "After %d closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
                 count, joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
-    SPDLOG_INFO(std::string(buffer));
+    SPDLOG_DEBUG(std::string(buffer));
 }
 
 ////////////////////////////// Utilities //////////////////////////////
