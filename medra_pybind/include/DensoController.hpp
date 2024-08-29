@@ -116,6 +116,7 @@ public:
     void bCapEnterProcess();
     void bCapExitProcess();
     void CommandServoJoint(const std::vector<double> joint_position);
+    void ClosedLoopCommandServoJoint(std::vector<double> last_waypoint);
     void ExecuteServoTrajectory(RobotTrajectory& traj);
 
     // utilities

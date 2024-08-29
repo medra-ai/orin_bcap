@@ -428,6 +428,10 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         // msg += ")";
         // SPDLOG_INFO(msg);
     }
+
+    // Close loop servo commands on last waypoint
+    ClosedLoopCommandServoJoint(traj.trajectory.back());
+
     // SPDLOG_INFO("Exec traj done");
 
     // Exit slave mode
@@ -441,6 +445,69 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
 
 }
 
+void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypoint) {
+    /* Repeat the last servo j command until the robot reaches tolerance or timeout */
+    double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001;  // rad
+    double CLOSE_LOOP_TIMEOUT = 0.1;  // 100ms
+
+    BCAP_HRESULT hr;
+    std::vector<double> current_jnt;
+    std::tie(hr, current_jnt) = GetCurJnt();
+    if (FAILED(hr)) {
+        SPDLOG_ERROR("Closed loop servo j commands failed to get initial joint position");
+    }
+    
+    // Print the initial joint error
+    std::vector<double> joint_error;
+    for (int i = 0; i < current_jnt.size(); ++i) {
+        joint_error.push_back(current_jnt[i] - last_waypoint[i]);
+    }
+    SPDLOG_DEBUG("Before closed-loop servo commands, joint error: [" 
+        + joint_error[0] + ", " + joint_error[1] + ", " + joint_error[2] + ", " 
+        + joint_error[3] + ", " + joint_error[4] + ", " + joint_error[5] + "]");
+
+    auto initial_time = std::chrono::steady_clock::now();
+    int count = 0;
+    while (true) {
+        // Check Timeout
+        auto current_time = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - initial_time).count();
+        if (duration > CLOSE_LOOP_TIMEOUT) {
+            SPDLOG_DEBUG("Closed loop servo j commands TIMEOUT");
+            break;
+        }
+
+        // Check Joint Tolerance
+        std::tie(hr, current_jnt) = GetCurJnt();
+        if (FAILED(hr)) {
+            SPDLOG_ERROR("Closed loop servo j commands failed to get current joint position");
+            break;
+        }
+        bool all_within_tolerance = true;
+        for (int i = 0; i < current_jnt.size(); ++i) {
+            if (std::abs(current_jnt[i] - last_waypoint[i]) > CLOSE_LOOP_JOINT_ANGLE_TOLERANCE) {
+                all_within_tolerance = false;
+                break;
+            }
+        }
+        if (all_within_tolerance) {
+            break;
+        }
+
+        // Command the last waypoint again
+        CommandServoJoint(last_waypoint);
+        count++;
+    }
+
+    // Print the joint remaining joint error
+    joint_error.clear();
+    for (int i = 0; i < current_jnt.size(); ++i) {
+        joint_error.push_back(current_jnt[i] - last_waypoint[i]);
+    }
+    SPDLOG_DEBUG("After " + count + " closed-loop servo commands, joint error: [" 
+        + joint_error[0] + ", " + joint_error[1] + ", " + joint_error[2] + ", " 
+        + joint_error[3] + ", " + joint_error[4] + ", " + joint_error[5] + "]");
+}
 
 ////////////////////////////// Utilities //////////////////////////////
 
