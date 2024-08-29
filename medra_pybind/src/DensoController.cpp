@@ -79,7 +79,10 @@ void DensoController::bCapServiceStop() {
 
 void DensoController::bCapControllerConnect() {
     SPDLOG_INFO("Getting controller handle. Server ip address: " + std::string(server_ip_address));
-    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
+    int r = rand();
+    std::string sessionName = std::to_string(r);
+
+    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, sessionName.c_str(), &lhController);
     if FAILED(hr) {
         throw bCapException("\033[1;31mbCap_ControllerConnect failed.\033[0m");
     }
