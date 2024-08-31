@@ -116,6 +116,7 @@ public:
     void bCapEnterProcess();
     void bCapExitProcess();
     void CommandServoJoint(const std::vector<double> joint_position);
+    void ClosedLoopCommandServoJoint(std::vector<double> last_waypoint);
     void ExecuteServoTrajectory(RobotTrajectory& traj);
 
     // utilities
@@ -150,6 +151,7 @@ private:
 
 ////////////////////////////// Utilities //////////////////////////////
 std::vector<double> VRad2Deg(std::vector<double> vect0);
+std::vector<double> VDeg2Rad(std::vector<double> vect0);
 
 double Rad2Deg(double x);
 double Deg2Rad(double x);

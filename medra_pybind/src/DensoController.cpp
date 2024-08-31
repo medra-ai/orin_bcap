@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <cstdio>
 
 
 namespace denso_controller {
@@ -78,7 +79,10 @@ void DensoController::bCapServiceStop() {
 
 void DensoController::bCapControllerConnect() {
     SPDLOG_INFO("Getting controller handle. Server ip address: " + std::string(server_ip_address));
-    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
+    int r = rand();
+    std::string sessionName = std::to_string(r);
+
+    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, sessionName.c_str(), &lhController);
     if FAILED(hr) {
         throw bCapException("\033[1;31mbCap_ControllerConnect failed.\033[0m");
     }
@@ -368,13 +372,13 @@ void DensoController::bCapExitProcess() {
  * Command Servo Joints
  * Send a SlaveMode move to joint position command to the robot.
  *
- * @param joint_position Vector of 8 DOF joint positions in Radians.
+ * @param joint_position_rad Vector of 8 DOF joint positions in Radians.
  * @return 0 if successful, 1 otherwise.
  */
-void DensoController::CommandServoJoint(const std::vector<double> joint_position) {
+void DensoController::CommandServoJoint(const std::vector<double> joint_position_rad) {
     BCAP_HRESULT hr = BCAP_S_OK;
     BCAP_VARIANT vntPose, vntReturn;
-    vntPose = VNTFromRadVector(joint_position);
+    vntPose = VNTFromRadVector(joint_position_rad);
     hr = bCapSlvMove(&vntPose, &vntReturn);
     if (FAILED(hr)) {
         std::string err_description = GetErrorDescription(hr);
@@ -383,8 +387,8 @@ void DensoController::CommandServoJoint(const std::vector<double> joint_position
 
     // Print the joint positions
     // std::string msg = "slvmove (";
-    // for (int i=0; i<joint_position.size(); ++i)
-    //     msg += std::to_string(joint_position[i]) + ' ';
+    // for (int i=0; i<joint_position_rad.size(); ++i)
+    //     msg += std::to_string(joint_position_rad[i]) + ' ';
     // msg += ")";
     // SPDLOG_INFO(msg);
 }
@@ -428,6 +432,10 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         // msg += ")";
         // SPDLOG_INFO(msg);
     }
+
+    // Close loop servo commands on last waypoint
+    ClosedLoopCommandServoJoint(traj.trajectory.back());
+
     // SPDLOG_INFO("Exec traj done");
 
     // Exit slave mode
@@ -441,6 +449,72 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
 
 }
 
+void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypoint) {
+    /* Repeat the last servo j command until the robot reaches tolerance or timeout */
+    double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001;  // rad
+    double CLOSE_LOOP_TIMEOUT = 0.1;  // 100ms
+    int CLOSE_LOOP_MAX_ITERATION = 10;
+
+    BCAP_HRESULT hr;
+    std::vector<double> current_jnt_deg;
+    std::tie(hr, current_jnt_deg) = GetCurJnt();
+    std::vector<double> current_jnt_rad = VDeg2Rad(current_jnt_deg);
+    if (FAILED(hr)) {
+        SPDLOG_ERROR("Closed loop servo j commands failed to get initial joint position");
+    }
+    
+    // Print the initial joint error
+    std::vector<double> joint_error;
+    for (int i = 0; i < current_jnt_rad.size(); ++i) {
+        joint_error.push_back(current_jnt_rad[i] - last_waypoint[i]);
+    }
+    char buffer[256] = {0};
+    std::sprintf(buffer, "Before closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
+                joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
+    SPDLOG_DEBUG(std::string(buffer));
+
+    int count = 0;
+    while (true) {
+        // Check iteration count
+        if (count >= CLOSE_LOOP_MAX_ITERATION)
+        {
+            break;
+        }
+
+        // Check Joint Tolerance
+        std::tie(hr, current_jnt_deg) = GetCurJnt();
+        if (FAILED(hr)) {
+            SPDLOG_ERROR("Closed loop servo j commands failed to get current joint position");
+            break;
+        }
+        current_jnt_rad = VDeg2Rad(current_jnt_deg);
+
+        bool all_within_tolerance = true;
+        for (int i = 0; i < current_jnt_rad.size(); ++i) {
+            if (std::abs(current_jnt_rad[i] - last_waypoint[i]) > CLOSE_LOOP_JOINT_ANGLE_TOLERANCE) {
+                all_within_tolerance = false;
+                break;
+            }
+        }
+        if (all_within_tolerance) {
+            break;
+        }
+
+        // Command the last waypoint again
+        CommandServoJoint(last_waypoint);
+        count++;
+    }
+
+    // Print the joint remaining joint error
+    joint_error.clear();
+    for (int i = 0; i < current_jnt_rad.size(); ++i) {
+        joint_error.push_back(current_jnt_rad[i] - last_waypoint[i]);
+    }
+    std::memset(buffer, 0, sizeof(buffer));
+    std::sprintf(buffer, "After %d closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
+                count, joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
+    SPDLOG_DEBUG(std::string(buffer));
+}
 
 ////////////////////////////// Utilities //////////////////////////////
 
@@ -519,6 +593,15 @@ std::vector<double> VRad2Deg(std::vector<double> vect0) {
     resvect.resize(0);
     for (int i = 0; i < int(vect0.size()); i++) {
         resvect.push_back(Rad2Deg(vect0[i]));
+    }
+    return resvect;
+}
+
+std::vector<double> VDeg2Rad(std::vector<double> vect0) {
+    std::vector<double> resvect;
+    resvect.resize(0);
+    for (int i = 0; i < int(vect0.size()); i++) {
+        resvect.push_back(Deg2Rad(vect0[i]));
     }
     return resvect;
 }
