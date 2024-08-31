@@ -356,12 +356,6 @@ void DensoController::bCapEnterProcess() {
 }
 
 void DensoController::bCapExitProcess() {
-    BCAP_HRESULT hr;
-    hr = bCapMotor(false);
-    if FAILED(hr) {
-        SPDLOG_ERROR("Fail to turn off motor");
-    }
-
     bCapReleaseRobot();
     bCapControllerDisconnect();
     bCapServiceStop();
