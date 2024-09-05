@@ -295,8 +295,7 @@ std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
 
 void DensoController::bCapEnterProcess() {
     // Only set priority on Linux machines
-    // #ifdef __linux__
-    #ifdef false
+    #ifdef __linux__
         // start setup realtime
         // Set process priority (nice value)
         int priority = -9;
