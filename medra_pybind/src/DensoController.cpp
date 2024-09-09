@@ -295,8 +295,7 @@ std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
 
 void DensoController::bCapEnterProcess() {
     // Only set priority on Linux machines
-    // #ifdef __linux__
-    #ifdef false
+    #ifdef __linux__
         // start setup realtime
         // Set process priority (nice value)
         int priority = -9;
@@ -397,8 +396,8 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     // Enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
     if (FAILED(hr)) {
-        SPDLOG_ERROR("Failed to enter b-CAP slave mode.");
         std::string err_description = GetErrorDescription(hr);
+        SPDLOG_ERROR("Failed to enter b-CAP slave mode." + err_description);
         throw EnterSlaveModeException(err_description);
     }
     // SPDLOG_INFO("Slave mode ON");
@@ -412,8 +411,8 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
         hr = bCapSlvMove(&vntPose, &vntReturn);
 
         if (FAILED(hr)) {
-            SPDLOG_ERROR("Failed to execute b-CAP slave move.");
             std::string err_description = GetErrorDescription(hr);
+            SPDLOG_ERROR("Failed to execute b-CAP slave move." + err_description);
             std::string msg = "Index " + std::to_string(i) + " of " + std::to_string(traj.size())
                 + " ErrDescription: " + err_description;
             throw SlaveMoveException(msg);
@@ -435,8 +434,8 @@ void DensoController::ExecuteServoTrajectory(RobotTrajectory& traj)
     // Exit slave mode
     hr = bCapSlvChangeMode("0");
     if (FAILED(hr)) {
-        SPDLOG_ERROR("Failed to exit b-CAP slave mode.");
         std::string err_description = GetErrorDescription(hr);
+        SPDLOG_ERROR("Failed to exit b-CAP slave mode." + err_description);
         throw ExitSlaveModeException(err_description);
     }
     // SPDLOG_INFO("Slave mode OFF");
