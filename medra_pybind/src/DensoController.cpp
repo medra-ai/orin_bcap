@@ -294,27 +294,6 @@ std::string DensoController::GetErrorDescription(BCAP_HRESULT error_code) {
 ////////////////////////////// High Level Commands //////////////////////////////
 
 void DensoController::bCapEnterProcess() {
-    // Only set priority on Linux machines
-    #ifdef __linux__
-        // start setup realtime
-        // Set process priority (nice value)
-        int priority = -9;
-        int result = setpriority(PRIO_PROCESS, 0, priority);
-        if (result == -1) {
-            SPDLOG_ERROR("Failed to set priority: " + std::string(strerror(errno)));
-            throw bCapException("Failed to set scheduler priority");
-        }
-        // Set scheduler to FIFO
-        struct sched_param param;
-        param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-        result = sched_setscheduler(0, SCHED_FIFO, &param);
-        if (result == -1) {
-            SPDLOG_ERROR("Failed to set scheduler: " + std::string(strerror(errno)));
-            throw bCapException("Failed to change scheduler");
-        }
-        // end setup realtime
-    #endif
-
     BCAP_HRESULT hr;
 
     bCapOpen();
