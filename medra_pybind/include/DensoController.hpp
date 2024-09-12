@@ -111,6 +111,7 @@ public:
     BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
     std::string GetErrorDescription(BCAP_HRESULT error_code);
+    long GetSlvMode();
 
     // high level commands
     void bCapEnterProcess();

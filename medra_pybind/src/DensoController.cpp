@@ -488,6 +488,16 @@ void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypo
     SPDLOG_DEBUG(std::string(buffer));
 }
 
+long DensoController::GetSlvMode() {
+    long lResult;
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "slvGetMode", "", &lResult);
+    if (FAILED(hr)) {
+        SPDLOG_ERROR("Failed to get slave mode");
+        throw bCapException("\033[1;31mslvGetMode failed.\033[0m");
+    }
+    return lResult;
+}
+
 ////////////////////////////// Utilities //////////////////////////////
 
 const char* DensoController::CommandFromVector(std::vector<double> q) {

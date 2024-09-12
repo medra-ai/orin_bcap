@@ -88,6 +88,7 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>())
     .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>())
     .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>())
+    .def("GetSlvMode", &DensoController::GetSlvMode, py::call_guard<py::gil_scoped_release>())
 
     // High level commands
     .def("bCapEnterProcess", [](DensoController &dc) {
