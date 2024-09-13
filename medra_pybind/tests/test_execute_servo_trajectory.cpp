@@ -25,7 +25,7 @@ int main(){
     double dJnt[8];
     BCAP_VARIANT vntPose, vntReturn;
 
-    denso_controller::DensoController controller = denso_controller::DensoController();
+    denso_controller::DensoController controller;
     controller.bCapEnterProcess();
     BCAP_HRESULT speed_hr = controller.SetExtSpeed("100");
 

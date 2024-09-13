@@ -88,6 +88,9 @@ class DensoController {
 
 public:
     DensoController();
+    // Delete the copy constructor because the class contains
+    // a non-copyable atomic variable.
+    DensoController(const DensoController& other) = delete;
 
     // low level commands
     void bCapOpen();
@@ -122,6 +125,7 @@ public:
     // utilities
     const char* CommandFromVector(std::vector<double> q);
     std::tuple<BCAP_HRESULT, std::vector<double>> GetCurJnt();
+    std::tuple<BCAP_HRESULT, std::vector<double>> GetForceValue();
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
@@ -136,6 +140,20 @@ public:
 
     int current_waypoint_index;
 
+private:
+    // The purpose of this variable is two-fold:
+    //   1. The _runForceSensingLoop function only runs while this variable is false.
+    //   2. The _runForceSensingLoop function sets this variable to true if the force limit is exceeded.
+    std::atomic<bool> _force_limit_exceeded;
+
+    // Runs force sensing loop. Should be used in a separate thread.
+    // This function runs while _force_limit_exceeded is false.
+    // If the force limit is exceeded, _force_limit_exceeded is set to true.
+    void _runForceSensingLoop(
+        double totalForceLimit,
+        double totalTorqueLimit,
+        std::vector<double> tcpForceTorqueLimit
+    );
 };
 
 
