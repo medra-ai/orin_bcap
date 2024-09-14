@@ -13,6 +13,7 @@
 #include <cassert>
 #include <vector>
 #include <tuple>
+#include <atomic>
 
 #define DEFAULT_SERVER_IP_ADDRESS    "192.168.0.1"
 #define DEFAULT_SERVER_PORT_NUM      5007
