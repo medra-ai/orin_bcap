@@ -71,7 +71,7 @@ int main(){
             currentPose[2],
             currentPose[3],
             currentPose[4],
-            currentPose[5] + 0.0001,
+            currentPose[5] + 0.001,
         };
         trajectory_poses.push_back(newPose);
         currentPose = newPose;
@@ -93,6 +93,9 @@ int main(){
 
     // Execute the trajectory
     controller.ExecuteServoTrajectory(trajectory);
+
+    second_controller.force_limit_exceeded = true;
+    force_sensing_thread.join();
 
     controller.bCapExitProcess();
     second_controller.bCapExitProcess();

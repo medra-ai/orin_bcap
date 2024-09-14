@@ -41,7 +41,7 @@ DensoController::DensoController() {
     lhController = 0;
     lhRobot = 0;
     current_waypoint_index = 0;
-    _force_limit_exceeded = false;
+    force_limit_exceeded = false;
 }
 
 ////////////////////////////// Low Level Commands //////////////////////////////
@@ -83,7 +83,7 @@ void DensoController::bCapControllerConnect() {
     int r = rand();
     std::string sessionName = std::to_string(r);
 
-    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, "b-CAP", "caoProv.DENSO.VRC9", server_ip_address, sessionName.c_str(), &lhController);
+    BCAP_HRESULT hr = bCap_ControllerConnect(iSockFD, sessionName.c_str(), "caoProv.DENSO.VRC9", server_ip_address, "", &lhController);
     if FAILED(hr) {
         throw bCapException("\033[1;31mbCap_ControllerConnect failed.\033[0m");
     }
@@ -382,7 +382,7 @@ void DensoController::ExecuteServoTrajectory(
     hr = bCapRobotExecute("forceSensor", "0");
 
     // Start a thread to stream force sensor data, setting the
-    _force_limit_exceeded = false;
+    force_limit_exceeded = false;
     // std::thread force_sensing_thread(
     //     &DensoController::runForceSensingLoop,
     //     this,
@@ -405,7 +405,7 @@ void DensoController::ExecuteServoTrajectory(
     BCAP_VARIANT vntPose, vntReturn;
     for (size_t i = 0; i < traj.size(); i++) {
         // Stop if the force exceedance condition is true
-        if (_force_limit_exceeded) {
+        if (force_limit_exceeded) {
             SPDLOG_INFO("Force limit exceeded. Stopping trajectory execution.");
             break;
         }
@@ -446,7 +446,7 @@ void DensoController::ExecuteServoTrajectory(
     // SPDLOG_INFO("Slave mode OFF");
 
     // Stop the force sensing thread
-    _force_limit_exceeded = true;
+    force_limit_exceeded = true;
     // force_sensing_thread.join();
 }
 
@@ -628,7 +628,7 @@ void DensoController::runForceSensingLoop(
     double totalTorqueLimit,
     std::vector<double> tcpForceTorqueLimit
 ) {
-    while (!_force_limit_exceeded) {
+    while (!force_limit_exceeded) {
         // Check the force threshold
         BCAP_HRESULT hr;
         std::vector<double> force_values;
@@ -652,7 +652,7 @@ void DensoController::runForceSensingLoop(
             std::pow(force_values[0], 2) + std::pow(force_values[1], 2) + std::pow(force_values[2], 2)
         );
         if (total_force > totalForceLimit) {
-            _force_limit_exceeded = true;
+            force_limit_exceeded = true;
             SPDLOG_INFO("Force limit exceeded. Total force: " + std::to_string(total_force));
             break;
         }
@@ -662,7 +662,7 @@ void DensoController::runForceSensingLoop(
             std::pow(force_values[3], 2) + std::pow(force_values[4], 2) + std::pow(force_values[5], 2)
         );
         if (total_torque > totalTorqueLimit) {
-            _force_limit_exceeded = true;
+            force_limit_exceeded = true;
             SPDLOG_INFO("Torque limit exceeded. Total torque: " + std::to_string(total_torque));
             break;
         }
@@ -670,7 +670,7 @@ void DensoController::runForceSensingLoop(
         // Check the TCP force/torque does not exceed the limit
         for (int i = 0; i < 6; i++) {
             if (std::abs(force_values[i]) > tcpForceTorqueLimit[i]) {
-                _force_limit_exceeded = true;
+                force_limit_exceeded = true;
                 SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(force_values[i]));
                 break;
             }
