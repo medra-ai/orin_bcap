@@ -99,11 +99,10 @@ public:
     void bCapServiceStop();
     void bCapControllerConnect();
     void bCapControllerDisconnect();
-    void bCapGetRobot();
-    void bCapReleaseRobot();
+    void bCapGetRobot(uint32_t& lhRobot);
+    void bCapReleaseRobot(uint32_t& lhRobot);
     BCAP_HRESULT bCapClearError();
-    BCAP_HRESULT bCapRobotExecute(const char* command, const char* option);
-    BCAP_HRESULT bCapRobotMove(const char* pose, const char* option);
+    // BCAP_HRESULT bCapRobotExecute(const char* command, const char* option);
     BCAP_HRESULT bCapMotor(bool command);
     BCAP_HRESULT bCapSlvChangeMode(const char* mode);
     BCAP_HRESULT printSlvMode();
@@ -136,7 +135,8 @@ public:
     int server_port_num;
     int iSockFD;
     uint32_t lhController;
-    uint32_t lhRobot;
+    uint32_t lhRobotWrite;
+    uint32_t lhRobotRead;  // Robot handle to be used for reading ONLY
 
     int current_waypoint_index;
 

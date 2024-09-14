@@ -78,8 +78,6 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("bCapGetRobot", &DensoController::bCapGetRobot, py::call_guard<py::gil_scoped_release>())
     .def("bCapReleaseRobot", &DensoController::bCapReleaseRobot, py::call_guard<py::gil_scoped_release>())
     .def("bCapClearError", &DensoController::bCapClearError, py::call_guard<py::gil_scoped_release>())
-    .def("bCapRobotExecute", &DensoController::bCapRobotExecute, py::call_guard<py::gil_scoped_release>())
-    .def("bCapRobotMove", &DensoController::bCapRobotMove, py::call_guard<py::gil_scoped_release>())
     .def("bCapMotor", &DensoController::bCapMotor, py::call_guard<py::gil_scoped_release>())
     .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode, py::call_guard<py::gil_scoped_release>())
     .def("bCapSlvMove", &DensoController::bCapSlvMove, py::call_guard<py::gil_scoped_release>())
@@ -112,7 +110,8 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def_readonly("server_port_num", &DensoController::server_port_num)
     .def_readonly("iSockFD", &DensoController::iSockFD)
     .def_readonly("lhController", &DensoController::lhController)
-    .def_readonly("lhRobot", &DensoController::lhRobot)
+    .def_readonly("lhRobotWrite", &DensoController::lhRobotWrite)
+    .def_readonly("lhRobotRead", &DensoController::lhRobotRead)
     .def_readonly("current_waypoint_index", &DensoController::current_waypoint_index);
 
 

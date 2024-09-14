@@ -25,12 +25,16 @@
 namespace denso_controller {
 
 DensoArmMutex::DensoArmMutex(DensoController &controller) : _controller(controller) {
-    _controller.bCapRobotExecute("TakeArm", "");
-    _controller.bCapRobotExecute("Motor", "1");
+    BCAP_HRESULT hr;
+    long lresult;
+    hr = bCap_RobotExecute(_controller.iSockFD, _controller.lhRobotWrite, "TakeArm", "", &lresult);
+    hr = bCap_RobotExecute(_controller.iSockFD, _controller.lhRobotWrite, "Motor", "1", &lresult);
 }
 
 DensoArmMutex::~DensoArmMutex() {
-    _controller.bCapRobotExecute("GiveArm", "");
+    BCAP_HRESULT hr;
+    long lresult;
+    bCap_RobotExecute(_controller.iSockFD, _controller.lhRobotWrite, "GiveArm", "", &lresult);
 }
 
 
@@ -39,7 +43,8 @@ DensoController::DensoController() {
     server_port_num = DEFAULT_SERVER_PORT_NUM;
     iSockFD = 0;
     lhController = 0;
-    lhRobot = 0;
+    lhRobotWrite = 0;
+    lhRobotRead = 0;
     current_waypoint_index = 0;
     _force_limit_exceeded = false;
 }
@@ -97,7 +102,7 @@ void DensoController::bCapControllerDisconnect() {
     }
 }
 
-void DensoController::bCapGetRobot() {
+void DensoController::bCapGetRobot(uint32_t& lhRobot) {
     SPDLOG_INFO("Get robot handle.");
     BCAP_HRESULT hr = bCap_ControllerGetRobot(iSockFD, lhController, "Arm", "", &lhRobot);
     if FAILED(hr) {
@@ -105,7 +110,7 @@ void DensoController::bCapGetRobot() {
     }
 }
 
-void DensoController::bCapReleaseRobot() {
+void DensoController::bCapReleaseRobot(uint32_t& lhRobot) {
     SPDLOG_INFO("Release robot handle.");
     BCAP_HRESULT hr = bCap_RobotRelease(iSockFD, lhRobot);
     if FAILED(hr) {
@@ -119,32 +124,29 @@ BCAP_HRESULT DensoController::bCapClearError() {
     return hr;
 }
 
-BCAP_HRESULT DensoController::bCapRobotExecute(const char* command, const char* option) {
-    long lResult;
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, command, option, &lResult);
-    return hr;
-}
-
-BCAP_HRESULT DensoController::bCapRobotMove(const char* pose, const char* option) {
-    BCAP_HRESULT hr = bCap_RobotMove(iSockFD, lhRobot, 1L, pose, option);
-    return hr;
-}
+// BCAP_HRESULT DensoController::bCapRobotExecute(const char* command, const char* option) {
+//     long lResult;
+//     BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, command, option, &lResult);
+//     return hr;
+// }
 
 BCAP_HRESULT DensoController::bCapMotor(bool command) {
     BCAP_HRESULT hr;
+    long lResult;
     if (command) {
         SPDLOG_INFO("Turn motor on.");
-        hr = bCapRobotExecute("Motor", "1");
+        hr = bCap_RobotExecute(iSockFD, lhRobotWrite, "Motor", "1", &lResult);
     }
     else{
         SPDLOG_INFO("Turn motor off.");
-        hr = bCapRobotExecute("Motor", "0");
+        hr = bCap_RobotExecute(iSockFD, lhRobotWrite, "Motor", "0", &lResult);
     }
     return hr;
 }
 
 BCAP_HRESULT DensoController::bCapSlvChangeMode(const char* mode) {
-    BCAP_HRESULT hr = bCapRobotExecute("slvChangeMode", mode);
+    long lResult;
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobotWrite, "slvChangeMode", mode, &lResult);
     if FAILED(hr) {
         throw bCapException("\033[1;31mbCap_SlvChangeMode failed.\033[0m");
     }
@@ -153,7 +155,7 @@ BCAP_HRESULT DensoController::bCapSlvChangeMode(const char* mode) {
 
 BCAP_HRESULT DensoController::printSlvMode() {
     long lResult;
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "slvGetMode", "", &lResult);
+    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobotRead, "slvGetMode", "", &lResult);
     if (lResult > 512) {
         SPDLOG_INFO("Slave mode 2 ");
         if (lResult == 513) SPDLOG_INFO("P-type");
@@ -180,7 +182,7 @@ BCAP_HRESULT DensoController::printSlvMode() {
 
 BCAP_HRESULT DensoController::bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result) {
     BCAP_HRESULT hr;
-    hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
+    hr = bCap_RobotExecute2(iSockFD, lhRobotWrite, "slvMove", pose, result);
     if (FAILED(hr)) {
         SPDLOG_ERROR("Failed to execute b-CAP slave move.");
     }
@@ -189,7 +191,8 @@ BCAP_HRESULT DensoController::bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* resu
 
 BCAP_HRESULT DensoController::SetExtSpeed(const char* speed) {
     BCAP_HRESULT hr;
-    hr = bCapRobotExecute("ExtSpeed", speed);
+    long lResult;
+    hr = bCap_RobotExecute(iSockFD, lhRobotWrite, "ExtSpeed", speed, &lResult);
     if SUCCEEDED(hr) {
         SPDLOG_INFO("External speed is set to " + std::string(speed));
     }
@@ -215,7 +218,7 @@ BCAP_HRESULT DensoController::SetTcpLoad(const int32_t tool_value) {
 
     BCAP_HRESULT hr = BCAP_S_OK;
     uint32_t lhVar;
-    hr = bCap_RobotGetVariable(iSockFD, lhRobot, "@CURRENT_TOOL", "", &lhVar);   /* Get var handle */
+    hr = bCap_RobotGetVariable(iSockFD, lhRobotWrite, "@CURRENT_TOOL", "", &lhVar);   /* Get var handle */
     if FAILED(hr) {
         SPDLOG_ERROR("Set TCP Load failed to get @CURRENT_TOOL variable");
         return hr;
@@ -242,7 +245,7 @@ BCAP_HRESULT DensoController::ChangeTool(char* tool_name) {
     auto arm_mutex = DensoArmMutex(*this);
 
     BCAP_HRESULT hr;
-    hr = bCap_RobotChange(iSockFD, lhRobot, tool_name); /* Change Tool */
+    hr = bCap_RobotChange(iSockFD, lhRobotWrite, tool_name); /* Change Tool */
     if SUCCEEDED(hr) {
         SPDLOG_INFO("Tool changed to " + std::string(tool_name));
     }
@@ -260,7 +263,7 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetMountingCalib(
     std::vector<double> mounting_calib = std::vector<double>(8);
 
     BCAP_HRESULT hr = BCAP_S_OK;
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
+    hr = bCap_RobotExecute(iSockFD, lhRobotRead, "getWorkDef", work_coordinate, &work_def);
     if FAILED(hr) {
         SPDLOG_ERROR("Failed to get mounting calibration");
         return {hr, mounting_calib};
@@ -303,8 +306,10 @@ void DensoController::bCapEnterProcess() {
     SPDLOG_INFO("b-Cap service started");
     bCapControllerConnect();
     SPDLOG_INFO("Connected to controller");
-    bCapGetRobot();
-    SPDLOG_INFO("Obtained robot handle");
+    bCapGetRobot(lhRobotRead);
+    SPDLOG_INFO("Obtained robot read-only handle");
+    bCapGetRobot(lhRobotWrite);
+    SPDLOG_INFO("Obtained robot write handle");
 
     long lResult;
     hr = bCap_ControllerExecute(iSockFD, lhController, "ClearError", "", &lResult);
@@ -335,7 +340,8 @@ void DensoController::bCapEnterProcess() {
 }
 
 void DensoController::bCapExitProcess() {
-    bCapReleaseRobot();
+    bCapReleaseRobot(lhRobotRead);
+    bCapReleaseRobot(lhRobotWrite);
     bCapControllerDisconnect();
     bCapServiceStop();
     bCapClose();
@@ -379,7 +385,7 @@ void DensoController::ExecuteServoTrajectory(
     // Reset the force sensor to prevent drift in the force readings.
     // Do it here, instead of in the force sensing thread, because this call
     // requires the arm mutex.
-    hr = bCapRobotExecute("forceSensor", "0");
+    hr = bCap_RobotExecute(iSockFD, lhRobotWrite, "forceSensor", "0", &lResult);
 
     // Start a thread to stream force sensor data, setting the
     _force_limit_exceeded = false;
@@ -536,7 +542,7 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetCurJnt() {
     double dJnt[8];
     std::vector<double> jnt(8);
 
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
+    hr = bCap_RobotExecute(iSockFD, lhRobotRead, "CurJnt", "", &dJnt);
     if FAILED(hr) {
         SPDLOG_ERROR("Fail to get current joint values.");
         return {hr, jnt};
@@ -552,7 +558,7 @@ std::tuple<BCAP_HRESULT, std::vector<double>> DensoController::GetForceValue() {
     double dForce[8];
     std::vector<double> force(8);
 
-    hr = bCap_RobotExecute(iSockFD, lhRobot, "forceValue", "13", &dForce);
+    hr = bCap_RobotExecute(iSockFD, lhRobotRead, "forceValue", "13", &dForce);
     if FAILED(hr) {
         SPDLOG_ERROR("Fail to get current force values.");
         return {hr, force};

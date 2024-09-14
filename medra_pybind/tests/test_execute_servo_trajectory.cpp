@@ -82,6 +82,6 @@ int main(){
     controller.ExecuteServoTrajectory(trajectory);
 
     controller.bCapMotor(false);
-    controller.bCapReleaseRobot();
+    controller.bCapReleaseRobot(lhRobot);
     controller.bCapClose();
 }
