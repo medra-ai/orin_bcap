@@ -383,14 +383,14 @@ void DensoController::ExecuteServoTrajectory(
 
     // Start a thread to stream force sensor data, setting the
     _force_limit_exceeded = false;
-    std::thread force_sensing_thread(
-        &DensoController::_runForceSensingLoop,
-        this,
-        // TODO: Parameterize these values
-        1000.0,  // total force limit
-        1000.0,  // total torque limit
-        std::vector<double>{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}  // tcp force/torque limit
-    );
+    // std::thread force_sensing_thread(
+    //     &DensoController::runForceSensingLoop,
+    //     this,
+    //     // TODO: Parameterize these values
+    //     1000.0,  // total force limit
+    //     1000.0,  // total torque limit
+    //     std::vector<double>{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}  // tcp force/torque limit
+    // );
 
     // Enter slave mode: mode 2 J-Type
     hr = bCapSlvChangeMode("514");
@@ -447,7 +447,7 @@ void DensoController::ExecuteServoTrajectory(
 
     // Stop the force sensing thread
     _force_limit_exceeded = true;
-    force_sensing_thread.join();
+    // force_sensing_thread.join();
 }
 
 void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypoint) {
@@ -623,7 +623,7 @@ std::vector<double> VDeg2Rad(std::vector<double> vect0) {
     return resvect;
 }
 
-void DensoController::_runForceSensingLoop(
+void DensoController::runForceSensingLoop(
     double totalForceLimit,
     double totalTorqueLimit,
     std::vector<double> tcpForceTorqueLimit
@@ -637,6 +637,15 @@ void DensoController::_runForceSensingLoop(
             SPDLOG_ERROR("Failed to get force values.");
             throw bCapException("Force sensing failed.");
         }
+
+        SPDLOG_INFO(
+            "Force values: Fx: " + std::to_string(force_values[0]) +
+            ", Fy: " + std::to_string(force_values[1]) +
+            ", Fz: " + std::to_string(force_values[2]) +
+            ", Tx: " + std::to_string(force_values[3]) +
+            ", Ty: " + std::to_string(force_values[4]) +
+            ", Tz: " + std::to_string(force_values[5])
+        );
 
         // Check the total force does not exceed the limit
         double total_force = std::sqrt(

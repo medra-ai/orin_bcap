@@ -140,20 +140,21 @@ public:
 
     int current_waypoint_index;
 
+    // Runs force sensing loop. Should be used in a separate thread.
+    // This function runs while _force_limit_exceeded is false.
+    // If the force limit is exceeded, _force_limit_exceeded is set to true.
+    void runForceSensingLoop(
+        double totalForceLimit,
+        double totalTorqueLimit,
+        std::vector<double> tcpForceTorqueLimit
+    );
+
 private:
     // The purpose of this variable is two-fold:
     //   1. The _runForceSensingLoop function only runs while this variable is false.
     //   2. The _runForceSensingLoop function sets this variable to true if the force limit is exceeded.
     std::atomic<bool> _force_limit_exceeded;
 
-    // Runs force sensing loop. Should be used in a separate thread.
-    // This function runs while _force_limit_exceeded is false.
-    // If the force limit is exceeded, _force_limit_exceeded is set to true.
-    void _runForceSensingLoop(
-        double totalForceLimit,
-        double totalTorqueLimit,
-        std::vector<double> tcpForceTorqueLimit
-    );
 };
 
 

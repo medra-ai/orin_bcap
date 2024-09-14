@@ -5,6 +5,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <vector>
+#include <thread>
 
 #define SERVER_IP_ADDRESS    "192.168.0.1"
 #define SERVER_PORT_NUM      5007
@@ -16,7 +17,6 @@
 #define AMPLITUDE  1
 
 int main(){
-
     int iSockFD;
     uint32_t lResult;
     uint32_t lhController, lhRobot;
@@ -28,6 +28,9 @@ int main(){
     denso_controller::DensoController controller;
     controller.bCapEnterProcess();
     BCAP_HRESULT speed_hr = controller.SetExtSpeed("100");
+
+    denso_controller::DensoController second_controller;
+    second_controller.bCapEnterProcess();
 
     // Test GetErrorDescription
     std::string err_description = controller.GetErrorDescription(speed_hr);
@@ -78,10 +81,19 @@ int main(){
     RobotTrajectory trajectory;
     trajectory.trajectory = trajectory_poses;
 
+    // Start a thread for the second controller to stream
+    // force sensing data
+    std::thread force_sensing_thread(
+        &denso_controller::DensoController::runForceSensingLoop,
+        &second_controller,
+        10000.0,
+        10000.0,
+        std::vector<double>{10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 1000.0}
+    );
+
     // Execute the trajectory
     controller.ExecuteServoTrajectory(trajectory);
 
-    controller.bCapMotor(false);
-    controller.bCapReleaseRobot();
-    controller.bCapClose();
+    controller.bCapExitProcess();
+    second_controller.bCapExitProcess();
 }
