@@ -25,6 +25,9 @@
 #define nSEC_PER_SECOND 1E9
 #define dReal float
 
+#define SERVO_MODE_ON "514"  // Mode 2 J-type
+#define SERVO_MODE_OFF "0"   // Servo mode off
+
 namespace denso_controller {
 
 class bCapException : public std::exception {
@@ -85,15 +88,14 @@ private:
 };
 
 
-class DensoController {
-
+// Maintains a connection to a Denso RC9 controller and provides wrapper
+// functions for common "read-only" operations, which do not change the
+// state of the controller.
+class DensoReadDriver {
 public:
-    DensoController();
-    // Delete the copy constructor because the class contains
-    // a non-copyable atomic variable.
-    DensoController(const DensoController& other) = delete;
+    DensoReadDriver();
 
-    // low level commands
+    // Setup and teardown functions
     void bCapOpen();
     void bCapClose();
     void bCapServiceStart();
@@ -102,68 +104,118 @@ public:
     void bCapControllerDisconnect();
     void bCapGetRobot();
     void bCapReleaseRobot();
-    BCAP_HRESULT bCapClearError();
-    BCAP_HRESULT bCapRobotExecute(const char* command, const char* option);
-    BCAP_HRESULT bCapRobotMove(const char* pose, const char* option);
-    BCAP_HRESULT bCapMotor(bool command);
-    BCAP_HRESULT bCapSlvChangeMode(const char* mode);
-    BCAP_HRESULT printSlvMode();
-    BCAP_HRESULT bCapSlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
-    BCAP_HRESULT SetExtSpeed(const char* speed);
-    BCAP_HRESULT ManualReset();
-    BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
-    BCAP_HRESULT ChangeTool(char* tool_name); // Alternative to SetTcpLoad?
+
+    // Read functions
+    BCAP_HRESULT GetCurJnt(std::vector<double>& joint_positions);
+    BCAP_HRESULT GetForceValue(std::vector<double>& force_values);
+    // TODO: Change this function signature to match the Denso b-CAP API.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
     std::string GetErrorDescription(BCAP_HRESULT error_code);
 
-    // high level commands
-    void bCapEnterProcess();
-    void bCapExitProcess();
-    void CommandServoJoint(const std::vector<double> joint_position);
-    void ClosedLoopCommandServoJoint(std::vector<double> last_waypoint);
-    void ExecuteServoTrajectory(RobotTrajectory& traj);
-
-    // utilities
-    const char* CommandFromVector(std::vector<double> q);
-    std::tuple<BCAP_HRESULT, std::vector<double>> GetCurJnt();
-    std::tuple<BCAP_HRESULT, std::vector<double>> GetForceValue();
-    std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
-    std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
-    BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
-    BCAP_VARIANT VNTFromRadVector(std::vector<double> vect0);
-
-    // class variables
+protected:
+    const char* session_name;
     const char* server_ip_address;
     int server_port_num;
     int iSockFD;
     uint32_t lhController;
     uint32_t lhRobot;
-
-    int current_waypoint_index;
-
-    // Runs force sensing loop. Should be used in a separate thread.
-    // This function runs while _force_limit_exceeded is false.
-    // If the force limit is exceeded, _force_limit_exceeded is set to true.
-    void runForceSensingLoop(
-        double totalForceLimit,
-        double totalTorqueLimit,
-        std::vector<double> tcpForceTorqueLimit
-    );
-
-    // The purpose of this variable is two-fold:
-    //   1. The _runForceSensingLoop function only runs while this variable is false.
-    //   2. The _runForceSensingLoop function sets this variable to true if the force limit is exceeded.
-    std::atomic<bool> force_limit_exceeded;
 };
 
+// Inherits from DensoReadDriver and adds wrapper functions for "write"
+// operations, which may change the state of the controller.
+class DensoReadWriteDriver : public DensoReadDriver {
+public:
+    DensoReadWriteDriver();
 
+    BCAP_HRESULT ClearError();
+    BCAP_HRESULT ManualReset();
+    BCAP_HRESULT Motor(bool command);
+    BCAP_HRESULT TakeArm();
+    BCAP_HRESULT GiveArm();
+    BCAP_HRESULT SetExtSpeed(const char* speed);
+    // TODO: Change this function signature to match the Denso b-CAP API.
+    BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
+
+    // Executes a command on the robot controller. Use for commands with string args.
+    // BCAP_HRESULT RobotExecute(const char* command, const char* option);
+
+    // Movement commands
+    BCAP_HRESULT SlvChangeMode(const char* mode);
+    BCAP_HRESULT SlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
+
+    BCAP_HRESULT ForceSensor(const char* mode);
+};
+
+// RAII-style mutex for the Denso arm mutex for axis control.
+// See "TakeArm" and "GiveArm" in the Cobotta Pro manual for more information
+// about the Denso arm mutex.
+// The constructor calls "TakeArm" and the destructor calls "GiveArm".
 class DensoArmMutex {
 public:
-    DensoArmMutex(DensoController &controller);
+    DensoArmMutex(DensoReadWriteDriver &driver);
     ~DensoArmMutex();
 
 private:
-    DensoController &_controller;
+    DensoReadWriteDriver &driver;
+};
+
+class DensoController {
+public:
+    DensoController();
+
+    void Start();
+    void Stop();
+
+    // Error handling
+    BCAP_HRESULT ClearError();
+    std::string GetErrorDescription(BCAP_HRESULT error_code);
+
+    // High level commands
+    // Returns a tuple containing the error code and the joint positions in radians.
+    std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
+    // Executes a trajectory of joint angles in radians.
+    void ExecuteServoTrajectory(RobotTrajectory& traj);
+    BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
+    std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
+
+    int current_waypoint_index;
+
+    // TODO: Make this variable private.
+    // The purpose of this variable is two-fold:
+    //   1. The RunForceSensingLoop function only runs while this variable is
+    //      false.
+    //   2. The RunForceSensingLoop function sets this variable to true if the
+    //      force limit is exceeded.
+    std::atomic<bool> force_limit_exceeded;
+
+    // TODO: Make this function private.
+    // Runs force sensing loop with the read-only Denso driver. Should be used
+    // in a separate thread.
+    // This function runs while force_limit_exceeded is false.
+    // If the force limit is exceeded, force_limit_exceeded is set to true.
+    void RunForceSensingLoop(
+        double total_force_limit,
+        double total_torque_limit,
+        std::vector<double> per_axis_force_torque_limits
+    );
+
+private:
+    // Denso b-CAP drivers, one for read-only operations and one for read-write
+    // operations.
+    DensoReadDriver read_driver;
+    DensoReadWriteDriver write_driver;
+
+
+    // Repeatedly commands a joint position in slave mode until the robot's
+    // current joint position is within a small tolerance of it.
+    void ClosedLoopCommandServoJoint(std::vector<double> waypoint);
+
+    // Utility functions
+    const char* CommandFromVector(std::vector<double> q);
+    std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
+    std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
+    BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
+    BCAP_VARIANT VNTFromRadVector(std::vector<double> vect0);
 };
 
 
