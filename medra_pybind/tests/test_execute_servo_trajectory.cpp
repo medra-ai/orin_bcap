@@ -51,8 +51,9 @@ int main(){
               << " " << currentPose[4]
               << " " << currentPose[5] << std::endl;
 
-    std::vector<std::vector<double>> trajectory_poses = {currentPose};
-    for (size_t i = 0; i < 1000; i++) {
+    std::vector<std::vector<double>> forward_trajectory_poses = {currentPose};
+    std::vector<std::vector<double>> reverse_trajectory_poses = {};
+    for (size_t i = 0; i < 100; i++) {
         std::vector<double> newPose = {
             currentPose[0],
             currentPose[1],
@@ -61,29 +62,23 @@ int main(){
             currentPose[4],
             currentPose[5] + 0.001,
         };
-        trajectory_poses.push_back(newPose);
+        forward_trajectory_poses.push_back(newPose);
+        reverse_trajectory_poses.insert(reverse_trajectory_poses.begin(), currentPose);
         currentPose = newPose;
     }
 
     const size_t dimension = 6;
-    RobotTrajectory trajectory;
-    trajectory.trajectory = trajectory_poses;
+    RobotTrajectory forward_trajectory;
+    forward_trajectory.trajectory = forward_trajectory_poses;
+    RobotTrajectory reverse_trajectory;
+    reverse_trajectory.trajectory = reverse_trajectory_poses;
 
-    // Start a thread for the second controller to stream
-    // force sensing data
-    std::thread force_sensing_thread(
-        &denso_controller::DensoController::RunForceSensingLoop,
-        &controller,
-        10000.0,
-        10000.0,
-        std::vector<double>{10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 1000.0}
-    );
 
     // Execute the trajectory
-    controller.ExecuteServoTrajectory(trajectory);
-
-    controller.force_limit_exceeded = true;
-    force_sensing_thread.join();
+    for (size_t iters = 0; iters < 100000; ++iters) {
+        controller.ExecuteServoTrajectory(forward_trajectory);
+        controller.ExecuteServoTrajectory(reverse_trajectory);
+    }
 
     controller.Stop();
 }
