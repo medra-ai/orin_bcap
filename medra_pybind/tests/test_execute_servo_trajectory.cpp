@@ -26,36 +26,24 @@ int main(){
     BCAP_VARIANT vntPose, vntReturn;
 
     denso_controller::DensoController controller;
-    controller.bCapEnterProcess();
-    BCAP_HRESULT speed_hr = controller.SetExtSpeed("100");
-
-    denso_controller::DensoController second_controller;
-    second_controller.bCapEnterProcess();
-
-    // Test GetErrorDescription
-    std::string err_description = controller.GetErrorDescription(speed_hr);
-    std::cout << "SetExtSpeed err description: " << err_description << std::endl;
+    controller.Start();
 
     // TODO: Add manual reset and clear errors
 
     // Generate a trajectory
     std::vector<double> currentPose;
-    auto jt_tuple = controller.GetCurJnt();
+    auto jt_tuple = controller.GetJointPositions();
     hr = std::get<0>(jt_tuple);
+
+    // Test GetErrorDescription
+    std::string err_description = controller.GetErrorDescription(hr);
+    std::cout << "CurJnt err description: " << err_description << std::endl;
+
     currentPose = std::get<1>(jt_tuple);
     if (FAILED(hr)) {
         std::cerr << "Failed to get current joint position" << std::endl;
         return 1;
     }
-
-    currentPose = {
-        denso_controller::Deg2Rad(currentPose[0]),
-        denso_controller::Deg2Rad(currentPose[1]),
-        denso_controller::Deg2Rad(currentPose[2]),
-        denso_controller::Deg2Rad(currentPose[3]),
-        denso_controller::Deg2Rad(currentPose[4]),
-        denso_controller::Deg2Rad(currentPose[5]),
-    };
     std::cout << currentPose[0]
               << " " << currentPose[1]
               << " " << currentPose[2]
@@ -84,8 +72,8 @@ int main(){
     // Start a thread for the second controller to stream
     // force sensing data
     std::thread force_sensing_thread(
-        &denso_controller::DensoController::runForceSensingLoop,
-        &second_controller,
+        &denso_controller::DensoController::RunForceSensingLoop,
+        &controller,
         10000.0,
         10000.0,
         std::vector<double>{10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 1000.0}
@@ -94,9 +82,8 @@ int main(){
     // Execute the trajectory
     controller.ExecuteServoTrajectory(trajectory);
 
-    second_controller.force_limit_exceeded = true;
+    controller.force_limit_exceeded = true;
     force_sensing_thread.join();
 
-    controller.bCapExitProcess();
-    second_controller.bCapExitProcess();
+    controller.Stop();
 }
