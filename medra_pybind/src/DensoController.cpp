@@ -116,11 +116,19 @@ void DensoReadDriver::bCapReleaseRobot() {
  */
 BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double>& joint_positions) {
     double dJnt[8];
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
-    if FAILED(hr) {
+    BCAP_HRESULT hr;
+    for (size_t attempt = 0; attempt < 3; ++attempt) {
+        hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
+        if (SUCCEEDED(hr)) {
+            break;
+        }
+        SPDLOG_ERROR("Failed to get joint pos, attempt ", std::to_string(attempt));
+    }
+    if (FAILED(hr)) {
         SPDLOG_ERROR("Failed to get current joint values.");
         return hr;
     }
+
     joint_positions.resize(0);
     for (int i = 0; i < 8; i++) {
         joint_positions.push_back(dJnt[i]);
@@ -135,11 +143,19 @@ BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double>& joint_positions) {
  */
 BCAP_HRESULT DensoReadDriver::GetForceValue(std::vector<double>& force_values) {
     double dForce[6];
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "forceValue", "13", &dForce);
-    if FAILED(hr) {
+    BCAP_HRESULT hr;
+    for (size_t attempt = 0; attempt < 3; ++attempt) {
+        hr = bCap_RobotExecute(iSockFD, lhRobot, "forceValue", "13", &dForce);
+        if SUCCEEDED(hr) {
+            break;
+        }
+        SPDLOG_ERROR("Failed to get force value, attempt ", std::to_string(attempt));
+    }
+    if (FAILED(hr)) {
         SPDLOG_ERROR("Failed to get current force values.");
         return hr;
     }
+
     force_values.resize(0);
     for (int i = 0; i < 6; i++) {
         force_values.push_back(dForce[i]);
@@ -378,6 +394,8 @@ void DensoController::Start() {
 }
 
 void DensoController::Stop() {
+    force_limit_exceeded = true;
+
     read_driver.bCapReleaseRobot();
     read_driver.bCapControllerDisconnect();
     read_driver.bCapServiceStop();
@@ -436,14 +454,14 @@ void DensoController::ExecuteServoTrajectory(
 
     // Start a thread to stream force sensor data, setting the
     force_limit_exceeded = false;
-    // std::thread force_sensing_thread(
-    //     &DensoController::runForceSensingLoop,
-    //     this,
-    //     // TODO: Parameterize these values
-    //     1000.0,  // total force limit
-    //     1000.0,  // total torque limit
-    //     std::vector<double>{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}  // tcp force/torque limit
-    // );
+    std::thread force_sensing_thread(
+        &DensoController::RunForceSensingLoop,
+        this,
+        // TODO: Parameterize these values
+        1000.0,  // total force limit
+        1000.0,  // total torque limit
+        std::vector<double>{1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0}  // tcp force/torque limit
+    );
 
     // Enter slave mode
     hr = write_driver.SlvChangeMode(SERVO_MODE_ON);
@@ -484,6 +502,10 @@ void DensoController::ExecuteServoTrajectory(
         // SPDLOG_INFO(msg);
     }
 
+    // Stop the force sensing thread.
+    force_limit_exceeded = true;
+    force_sensing_thread.join();
+
     // Close loop servo commands on last waypoint
     ClosedLoopCommandServoJoint(traj.trajectory.back());
 
@@ -498,9 +520,6 @@ void DensoController::ExecuteServoTrajectory(
     }
     SPDLOG_INFO("Slave mode OFF");
 
-    // Stop the force sensing thread
-    force_limit_exceeded = true;
-    // force_sensing_thread.join();
 }
 
 void DensoController::RunForceSensingLoop(
@@ -517,15 +536,6 @@ void DensoController::RunForceSensingLoop(
             SPDLOG_ERROR("Failed to get force values.");
             throw bCapException("Force sensing failed.");
         }
-
-        SPDLOG_INFO(
-            "Force values: Fx: " + std::to_string(force_values[0]) +
-            ", Fy: " + std::to_string(force_values[1]) +
-            ", Fz: " + std::to_string(force_values[2]) +
-            ", Tx: " + std::to_string(force_values[3]) +
-            ", Ty: " + std::to_string(force_values[4]) +
-            ", Tz: " + std::to_string(force_values[5])
-        );
 
         // Check the total force does not exceed the limit
         double total_force = std::sqrt(
