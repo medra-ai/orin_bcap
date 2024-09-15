@@ -5,7 +5,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <vector>
-#include <thread>
 
 #define SERVER_IP_ADDRESS    "192.168.0.1"
 #define SERVER_PORT_NUM      5007
