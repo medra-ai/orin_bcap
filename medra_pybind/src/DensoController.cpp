@@ -443,11 +443,12 @@ DensoController::GetJointPositions() {
 }
 
 
-void DensoController::ExecuteServoTrajectory(
+bool DensoController::ExecuteServoTrajectory(
     RobotTrajectory& traj
     // TODO: add force threshold parameters
 )
 {
+    bool trajectory_execution_finished = true;
     BCAP_HRESULT hr;
     long lResult;
 
@@ -466,7 +467,7 @@ void DensoController::ExecuteServoTrajectory(
         // TODO: Parameterize these values
         1000.0,  // total force limit
         1000.0,  // total torque limit
-        std::vector<double>{1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0}  // tcp force/torque limit
+        std::vector<double>{1000.0, 1000.0, 20.0, 1000.0, 1000.0, 1000.0}  // tcp force/torque limit
     );
 
     // Enter slave mode
@@ -484,6 +485,7 @@ void DensoController::ExecuteServoTrajectory(
         // Stop if the force exceedance condition is true
         if (force_limit_exceeded) {
             SPDLOG_INFO("Force limit exceeded. Stopping trajectory execution.");
+            trajectory_execution_finished = false;
             break;
         }
 
@@ -526,6 +528,7 @@ void DensoController::ExecuteServoTrajectory(
     }
     SPDLOG_INFO("Slave mode OFF");
 
+    return trajectory_execution_finished;
 }
 
 void DensoController::RunForceSensingLoop(
