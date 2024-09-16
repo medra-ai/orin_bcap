@@ -175,7 +175,7 @@ public:
     // Returns a tuple containing the error code and the joint positions in radians.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
     // Executes a trajectory of joint angles in radians.
-    void ExecuteServoTrajectory(RobotTrajectory& traj);
+    bool ExecuteServoTrajectory(RobotTrajectory& traj);
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
 

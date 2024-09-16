@@ -75,8 +75,14 @@ int main(){
 
     // Execute the trajectory
     for (size_t iters = 0; iters < 100000; ++iters) {
-        controller.ExecuteServoTrajectory(forward_trajectory);
-        controller.ExecuteServoTrajectory(reverse_trajectory);
+        if (!controller.ExecuteServoTrajectory(forward_trajectory)) {
+            std::cout << "Stopped early" << std::endl;
+            break;
+        }
+        if (!controller.ExecuteServoTrajectory(reverse_trajectory)) {
+            std::cout << "Stopped early" << std::endl;
+            break;
+        }
     }
 
     controller.Stop();
