@@ -122,7 +122,7 @@ BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double>& joint_positions) {
         if (SUCCEEDED(hr)) {
             break;
         }
-        SPDLOG_ERROR("Failed to get joint pos, attempt ", std::to_string(attempt));
+        SPDLOG_WARN("Failed to get joint pos, attempt ", std::to_string(attempt));
     }
     if (FAILED(hr)) {
         SPDLOG_ERROR("Failed to get current joint values.");
@@ -149,7 +149,7 @@ BCAP_HRESULT DensoReadDriver::GetForceValue(std::vector<double>& force_values) {
         if SUCCEEDED(hr) {
             break;
         }
-        SPDLOG_ERROR("Failed to get force value, attempt ", std::to_string(attempt));
+        SPDLOG_WARN("Failed to get force value, attempt ", std::to_string(attempt));
     }
     if (FAILED(hr)) {
         SPDLOG_ERROR("Failed to get current force values.");
@@ -312,7 +312,13 @@ BCAP_HRESULT DensoReadWriteDriver::SlvChangeMode(const char* mode) {
 
 BCAP_HRESULT DensoReadWriteDriver::SlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result) {
     BCAP_HRESULT hr;
-    hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
+    for (size_t attempt = 0; attempt < 3; ++attempt) {
+        hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
+        if (SUCCEEDED(hr)) {
+            break;
+        }
+        SPDLOG_WARN("Failed to execute slvMove, attempt ", std::to_string(attempt));
+    }
     if (FAILED(hr)) {
         SPDLOG_ERROR("Failed to execute b-CAP slave move.");
     }
@@ -488,7 +494,7 @@ void DensoController::ExecuteServoTrajectory(
 
         if (FAILED(hr)) {
             std::string err_description = GetErrorDescription(hr);
-            SPDLOG_ERROR("Failed to execute b-CAP slave move." + err_description);
+            SPDLOG_ERROR("Failed to execute b-CAP slave move. " + err_description);
             std::string msg = "Index " + std::to_string(i) + " of " + std::to_string(traj.size())
                 + " ErrDescription: " + err_description;
             throw SlaveMoveException(msg);
@@ -565,6 +571,8 @@ void DensoController::RunForceSensingLoop(
                 break;
             }
         }
+
+        sleep(0.001);
     }
 }
 
