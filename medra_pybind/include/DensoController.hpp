@@ -181,7 +181,12 @@ public:
 
     int current_waypoint_index;
 
-    // TODO: Make this variable private.
+private:
+    // Denso b-CAP drivers, one for read-only operations and one for read-write
+    // operations.
+    DensoReadDriver read_driver;
+    DensoReadWriteDriver write_driver;
+
     // The purpose of this variable is two-fold:
     //   1. The RunForceSensingLoop function only runs while this variable is
     //      false.
@@ -189,7 +194,6 @@ public:
     //      force limit is exceeded.
     std::atomic<bool> force_limit_exceeded;
 
-    // TODO: Make this function private.
     // Runs force sensing loop with the read-only Denso driver. Should be used
     // in a separate thread.
     // This function runs while force_limit_exceeded is false.
@@ -199,13 +203,6 @@ public:
         double total_torque_limit,
         std::vector<double> per_axis_force_torque_limits
     );
-
-private:
-    // Denso b-CAP drivers, one for read-only operations and one for read-write
-    // operations.
-    DensoReadDriver read_driver;
-    DensoReadWriteDriver write_driver;
-
 
     // Repeatedly commands a joint position in slave mode until the robot's
     // current joint position is within a small tolerance of it.
