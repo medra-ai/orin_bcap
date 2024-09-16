@@ -52,7 +52,7 @@ int main(){
 
     std::vector<std::vector<double>> forward_trajectory_poses = {currentPose};
     std::vector<std::vector<double>> reverse_trajectory_poses = {};
-    for (size_t i = 0; i < 100; i++) {
+    for (size_t i = 0; i < 1000; i++) {
         std::vector<double> newPose = {
             currentPose[0],
             currentPose[1],

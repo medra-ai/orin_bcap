@@ -327,7 +327,15 @@ BCAP_HRESULT DensoReadWriteDriver::SlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* res
 
 BCAP_HRESULT DensoReadWriteDriver::ForceSensor(const char* mode) {
     long lResult;
-    BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "ForceSensor", mode, &lResult);
+    BCAP_HRESULT hr;
+    for (size_t attempt = 0; attempt < 3; ++attempt) {
+        hr = bCap_RobotExecute(iSockFD, lhRobot, "ForceSensor", mode, &lResult);
+        if (SUCCEEDED(hr)) {
+            break;
+        }
+        SPDLOG_WARN("Failed to execute ForceSensor; attempt ", std::to_string(attempt));
+        sleep(0.001);
+    }
     if FAILED(hr) {
         SPDLOG_ERROR("Failed to execute ForceSensor.");
     }
@@ -515,7 +523,9 @@ bool DensoController::ExecuteServoTrajectory(
     force_sensing_thread.join();
 
     // Close loop servo commands on last waypoint
-    ClosedLoopCommandServoJoint(traj.trajectory.back());
+    if (!force_limit_exceeded) {
+        ClosedLoopCommandServoJoint(traj.trajectory.back());
+    }
 
     // SPDLOG_INFO("Exec traj done");
 
