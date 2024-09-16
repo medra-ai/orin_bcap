@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <string.h>
 #include <cstdio>
+#include <fstream>
 
 
 namespace denso_controller {
@@ -546,6 +547,12 @@ void DensoController::RunForceSensingLoop(
     double totalTorqueLimit,
     std::vector<double> tcpForceTorqueLimit
 ) {
+    std::ofstream force_sensing_log("force_sensing_log.txt");
+    if (!force_sensing_log.is_open()) {
+        SPDLOG_ERROR("Failed to open force sensing log file.");
+        throw bCapException("Force sensing logging failed.");
+    }
+
     while (!force_limit_exceeded) {
         // Check the force threshold
         BCAP_HRESULT hr;
@@ -555,6 +562,15 @@ void DensoController::RunForceSensingLoop(
             SPDLOG_ERROR("Failed to get force values.");
             throw bCapException("Force sensing failed.");
         }
+
+        // Write the 6-vector data to the file
+        for (size_t i = 0; i < force_values.size(); ++i) {
+            force_sensing_log << force_values[i];
+            if (i < force_values.size() - 1) {
+                force_sensing_log << " "; // Separate values with a space
+            }
+        }
+        force_sensing_log << "\n"; // Newline after each vector
 
         // Check the total force does not exceed the limit
         double total_force = std::sqrt(
@@ -587,6 +603,8 @@ void DensoController::RunForceSensingLoop(
 
         sleep(0.001);
     }
+
+    force_sensing_log.close();
 }
 
 void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypoint) {
