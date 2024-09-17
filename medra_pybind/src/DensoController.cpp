@@ -5,10 +5,13 @@
 
 #include "b-Cap.h"
 #include "DensoController.hpp"
+#include "filter.hpp"
 
 #include <iostream>
 #include <math.h>
 #include <time.h>
+
+#include <fstream>
 
 #include <spdlog/spdlog.h>
 
@@ -20,7 +23,6 @@
 #include <errno.h>
 #include <string.h>
 #include <cstdio>
-#include <fstream>
 
 
 namespace denso_controller {
@@ -535,6 +537,10 @@ void DensoController::RunForceSensingLoop(
     const int frequency = 100; // Hz
     const int period = 1000 / frequency; // period in milliseconds
 
+    const int filter_size = 5;
+    const int force_value_data_size = 6;  // x, y, z, rx, ry, rz
+    filter::MeanFilter mean_filter(filter_size, force_value_data_size);
+
     std::ofstream force_sensing_log("force_sensing_log.txt", std::ios::app);
     if (!force_sensing_log.is_open()) {
         SPDLOG_ERROR("Failed to open force sensing log file.");
@@ -552,6 +558,10 @@ void DensoController::RunForceSensingLoop(
         if (FAILED(hr)) {
             HandleError(hr, "GetForceValue failed.");
         }
+        mean_filter.AddValue(force_values);
+
+        // Use the mean of the last filter_size force values
+        force_values = mean_filter.GetMean();
 
         // Write the 6-vector data to the file
         for (size_t i = 0; i < force_values.size(); ++i) {

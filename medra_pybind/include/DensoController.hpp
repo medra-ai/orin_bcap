@@ -88,7 +88,6 @@ private:
     std::string _err_msg;
 };
 
-
 // Maintains a connection to a Denso RC9 controller and provides wrapper
 // functions for common "read-only" operations, which do not change the
 // state of the controller.
