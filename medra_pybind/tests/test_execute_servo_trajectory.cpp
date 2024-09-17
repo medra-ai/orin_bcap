@@ -75,11 +75,22 @@ int main(){
 
     // Execute the trajectory
     for (size_t iters = 0; iters < 100000; ++iters) {
-        if (!controller.ExecuteServoTrajectory(forward_trajectory)) {
+        std::optional<std::vector<double>> force_vector = std::vector<double>{10000.0, 10000.0, 10.0, 10000.0, 10000.0, 10000.0};
+        if (!controller.ExecuteServoTrajectory(
+            forward_trajectory,
+            std::nullopt,
+            std::nullopt,
+            force_vector
+        )) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
-        if (!controller.ExecuteServoTrajectory(reverse_trajectory)) {
+        if (!controller.ExecuteServoTrajectory(
+            reverse_trajectory,
+            std::nullopt,
+            std::nullopt,
+            force_vector
+        )) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
