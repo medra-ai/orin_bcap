@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(medra_bcap)
 
+set(CMAKE_CXX_STANDARD 20)
+
 message ("CMake Compiler: " ${CMAKE_CXX_COMPILER})
 message ("CMake Compiler ID: " ${CMAKE_CXX_COMPILER_ID})
 message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
@@ -16,7 +18,6 @@ set(SOURCES
 
 # Cmake version policy
 cmake_policy(SET CMP0057 NEW)
-set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Include dir
