@@ -110,11 +110,6 @@ void DensoReadDriver::bCapReleaseRobot() {
     }
 }
 
-/* Populates joint_positions with the current joint values.
-   joint_positions is mutated into a vector of 8 doubles.
-   The first 6 values are the joint angles in degrees, and the last 2 values
-   are the positions of the auxiliary axes, or 0 if they are not used.
- */
 BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double>& joint_positions) {
     double dJnt[8];
     BCAP_HRESULT hr;
@@ -137,11 +132,6 @@ BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double>& joint_positions) {
     return hr;
 }
 
-/* Populates force_values with the current force values.
-   force_values is mutated into a vector of 6 doubles.
-   The first 3 values are the force values, and the last 3 values are the
-   torque values.
- */
 BCAP_HRESULT DensoReadDriver::GetForceValue(std::vector<double>& force_values) {
     double dForce[6];
     BCAP_HRESULT hr;
@@ -164,8 +154,6 @@ BCAP_HRESULT DensoReadDriver::GetForceValue(std::vector<double>& force_values) {
     return hr;
 }
 
-/* Populates mounting_calib with the offset from the specified work coordinate.
- */
 std::tuple<BCAP_HRESULT, std::vector<double>>
 DensoReadDriver::GetMountingCalib(const char* work_coordinate) {
     double work_def[8]; // Should this be 6?
