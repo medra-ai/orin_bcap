@@ -106,8 +106,17 @@ public:
     void bCapGetRobot();
     void bCapReleaseRobot();
 
-    // Read functions
+    //// Read functions
+    // Populates joint_positions with the current joint values.
+    // joint_positions is mutated into a vector of 8 doubles.
+    // The first 6 values are the joint angles in degrees, and the last 2
+    // values are the positions of the auxiliary axes, or 0 if they are not
+    // used.
     BCAP_HRESULT GetCurJnt(std::vector<double>& joint_positions);
+    // Populates force_values with the current force values.
+    // force_values is mutated into a vector of 6 doubles.
+    // The first 3 values are the force values in Newtons, and the last 3
+    // values are the torque values in Newton-meters.
     BCAP_HRESULT GetForceValue(std::vector<double>& force_values);
     // TODO: Change this function signature to match the Denso b-CAP API.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
@@ -144,6 +153,7 @@ public:
     BCAP_HRESULT SlvChangeMode(const char* mode);
     BCAP_HRESULT SlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
 
+    // Resets the force sensor.
     BCAP_HRESULT ForceSensor(const char* mode);
 };
 
@@ -173,9 +183,20 @@ public:
     std::string GetErrorDescription(BCAP_HRESULT error_code);
 
     // High level commands
-    // Returns a tuple containing the error code and the joint positions in radians.
+    // Returns a tuple containing the error code and the joint positions in
+    // radians.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
     // Executes a trajectory of joint angles in radians.
+    // total_force_limit, total_torque_limit, and per_axis_force_torque_limits
+    // describe stopping criteria for trajectory execution based on force
+    // sensing. If any of the following are true, then trajectory execution is
+    // stopped early:
+    //   1. If the total force exceeds total_force_limit N,
+    //   2. If the total torque exceeds total_torque_limit Nm, or
+    //   3. If the force or torque on any axis exceeds the corresponding limit
+    //     in per_axis_force_torque_limits.
+    // The return value is true if the trajectory fully executed, and false if
+    // it was stopped early.
     bool ExecuteServoTrajectory(
         RobotTrajectory& traj,
         std::optional<double> total_force_limit = std::nullopt,
