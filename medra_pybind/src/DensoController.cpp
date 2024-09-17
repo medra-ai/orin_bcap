@@ -362,36 +362,24 @@ void DensoController::Start() {
 
     hr = ClearError();
     if FAILED(hr) {
-        std::string err_description = read_driver.GetErrorDescription(hr);
-        SPDLOG_ERROR("ClearError failed: " + err_description);
-        Stop();
-        throw bCapException("Fail to clear error.", err_description);
+        HandleError(hr, "ClearError failed.");
     }
 
     hr = write_driver.ManualReset();
     if FAILED(hr) {
-        std::string err_description = GetErrorDescription(hr);
-        SPDLOG_ERROR("ManualReset failed: " + err_description);
-        Stop();
-        throw bCapException("Fail to execute manual reset.", err_description);
+        HandleError(hr, "ManualReset failed.");
     }
 
     // Set the external speed to 100%
     hr = write_driver.SetExtSpeed("100");
     if FAILED(hr) {
-        std::string err_description = GetErrorDescription(hr);
-        SPDLOG_ERROR("SetExtSpeed failed: " + err_description);
-        Stop();
-        throw bCapException("Fail to set external speed.", err_description);
+        HandleError(hr, "SetExtSpeed failed.");
     }
 
     auto arm_mutex = DensoArmMutex(write_driver);
     hr = write_driver.Motor(true);
     if FAILED(hr) {
-        std::string err_description = GetErrorDescription(hr);
-        SPDLOG_ERROR("MotorOn failed: " + err_description);
-        Stop();
-        throw bCapException("Fail to turn motor on.", err_description);
+        HandleError(hr, "MotorOn failed.");
     }
     current_waypoint_index = 0;
 }
@@ -547,6 +535,7 @@ void DensoController::RunForceSensingLoop(
     std::ofstream force_sensing_log("force_sensing_log.txt", std::ios::app);
     if (!force_sensing_log.is_open()) {
         SPDLOG_ERROR("Failed to open force sensing log file.");
+        Stop();
         throw bCapException("Force sensing logging failed.");
     }
 
@@ -556,8 +545,7 @@ void DensoController::RunForceSensingLoop(
         std::vector<double> force_values;
         hr = read_driver.GetForceValue(force_values);
         if (FAILED(hr)) {
-            SPDLOG_ERROR("Failed to get force values.");
-            throw bCapException("Force sensing failed.");
+            HandleError(hr, "GetForceValue failed.");
         }
 
         // Write the 6-vector data to the file
@@ -677,6 +665,20 @@ void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypo
     std::sprintf(buffer, "After %d closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
                 count, joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
     SPDLOG_DEBUG(std::string(buffer));
+}
+
+void DensoController::HandleError(BCAP_HRESULT error_code, const char* error_description) {
+    SPDLOG_ERROR("Error code: " + std::to_string(error_code));
+    SPDLOG_ERROR("Error description: " + std::string(error_description));
+    std::string controller_error = read_driver.GetErrorDescription(error_code);
+    SPDLOG_ERROR("Controller error message: " + controller_error);
+
+    Stop();
+    throw bCapException(
+        "Error code: " + std::to_string(error_code)
+        + ". Error description: " + error_description
+        + ". Controller error message: " + controller_error
+    );
 }
 
 ////////////////////////////// Utilities //////////////////////////////

@@ -235,6 +235,9 @@ private:
     // current joint position is within a small tolerance of it.
     void ClosedLoopCommandServoJoint(std::vector<double> waypoint);
 
+    // Error handling
+    void HandleError(BCAP_HRESULT error_code, const char* error_description);
+
     // Utility functions
     const char* CommandFromVector(std::vector<double> q);
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
