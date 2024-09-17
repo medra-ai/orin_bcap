@@ -556,7 +556,7 @@ void DensoController::RunForceSensingLoop(
         return;
     }
 
-    std::ofstream force_sensing_log("force_sensing_log.txt");
+    std::ofstream force_sensing_log("force_sensing_log.txt", std::ios::app);
     if (!force_sensing_log.is_open()) {
         SPDLOG_ERROR("Failed to open force sensing log file.");
         throw bCapException("Force sensing logging failed.");
