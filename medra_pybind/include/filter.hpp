@@ -1,5 +1,6 @@
 #include <vector>
 #include <queue>
+#include <stdexcept>
 
 namespace filter {
 
