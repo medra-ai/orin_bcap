@@ -532,6 +532,9 @@ void DensoController::RunForceSensingLoop(
         return;
     }
 
+    const int frequency = 100; // Hz
+    const int period = 1000 / frequency; // period in milliseconds
+
     std::ofstream force_sensing_log("force_sensing_log.txt", std::ios::app);
     if (!force_sensing_log.is_open()) {
         SPDLOG_ERROR("Failed to open force sensing log file.");
@@ -539,10 +542,12 @@ void DensoController::RunForceSensingLoop(
         throw bCapException("Force sensing logging failed.");
     }
 
+    BCAP_HRESULT hr;
+    std::vector<double> force_values;
     while (!force_limit_exceeded) {
+        auto start = std::chrono::steady_clock::now();
+
         // Check the force threshold
-        BCAP_HRESULT hr;
-        std::vector<double> force_values;
         hr = read_driver.GetForceValue(force_values);
         if (FAILED(hr)) {
             HandleError(hr, "GetForceValue failed.");
@@ -592,7 +597,10 @@ void DensoController::RunForceSensingLoop(
             }
         }
 
-        sleep(0.001);
+        // High-precision sleep to maintain the desired frequency
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
+        std::this_thread::sleep_for(std::chrono::milliseconds(period) - elapsed);
     }
 
     force_sensing_log.close();
