@@ -14,6 +14,7 @@
 #include <vector>
 #include <tuple>
 #include <atomic>
+#include <optional>
 
 #define DEFAULT_SERVER_IP_ADDRESS    "192.168.0.1"
 #define DEFAULT_SERVER_PORT_NUM      5007
@@ -175,7 +176,12 @@ public:
     // Returns a tuple containing the error code and the joint positions in radians.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
     // Executes a trajectory of joint angles in radians.
-    bool ExecuteServoTrajectory(RobotTrajectory& traj);
+    bool ExecuteServoTrajectory(
+        RobotTrajectory& traj,
+        std::optional<double> total_force_limit = std::nullopt,
+        std::optional<double> total_torque_limit = std::nullopt,
+        std::optional<std::vector<double>> per_axis_force_torque_limits = std::nullopt
+    );
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
 
@@ -199,9 +205,9 @@ private:
     // This function runs while force_limit_exceeded is false.
     // If the force limit is exceeded, force_limit_exceeded is set to true.
     void RunForceSensingLoop(
-        double total_force_limit,
-        double total_torque_limit,
-        std::vector<double> per_axis_force_torque_limits
+        std::optional<double> total_force_limit,
+        std::optional<double> total_torque_limit,
+        std::optional<std::vector<double>> per_axis_force_torque_limits
     );
 
     // Repeatedly commands a joint position in slave mode until the robot's

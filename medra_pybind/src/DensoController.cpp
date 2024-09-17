@@ -453,8 +453,10 @@ DensoController::GetJointPositions() {
 
 
 bool DensoController::ExecuteServoTrajectory(
-    RobotTrajectory& traj
-    // TODO: add force threshold parameters
+    RobotTrajectory& traj,
+    std::optional<double> total_force_limit,
+    std::optional<double> total_torque_limit,
+    std::optional<std::vector<double>> per_axis_force_torque_limits
 )
 {
     bool trajectory_execution_finished = true;
@@ -473,10 +475,9 @@ bool DensoController::ExecuteServoTrajectory(
     std::thread force_sensing_thread(
         &DensoController::RunForceSensingLoop,
         this,
-        // TODO: Parameterize these values
-        1000.0,  // total force limit
-        1000.0,  // total torque limit
-        std::vector<double>{1000.0, 1000.0, 20.0, 1000.0, 1000.0, 1000.0}  // tcp force/torque limit
+        total_force_limit,
+        total_torque_limit,
+        per_axis_force_torque_limits
     );
 
     // Enter slave mode
@@ -543,10 +544,18 @@ bool DensoController::ExecuteServoTrajectory(
 }
 
 void DensoController::RunForceSensingLoop(
-    double totalForceLimit,
-    double totalTorqueLimit,
-    std::vector<double> tcpForceTorqueLimit
+    std::optional<double> total_force_limit,
+    std::optional<double> total_torque_limit,
+    std::optional<std::vector<double>> per_axis_force_torque_limits
 ) {
+    // Exit early if no force limits are specified
+    if (!total_force_limit.has_value()
+        && !total_torque_limit.has_value()
+        && !per_axis_force_torque_limits.has_value()
+    ) {
+        return;
+    }
+
     std::ofstream force_sensing_log("force_sensing_log.txt");
     if (!force_sensing_log.is_open()) {
         SPDLOG_ERROR("Failed to open force sensing log file.");
@@ -576,7 +585,9 @@ void DensoController::RunForceSensingLoop(
         double total_force = std::sqrt(
             std::pow(force_values[0], 2) + std::pow(force_values[1], 2) + std::pow(force_values[2], 2)
         );
-        if (total_force > totalForceLimit) {
+        if (total_force_limit.has_value()
+            && total_force > *total_force_limit
+        ) {
             force_limit_exceeded = true;
             SPDLOG_INFO("Force limit exceeded. Total force: " + std::to_string(total_force));
             break;
@@ -586,18 +597,22 @@ void DensoController::RunForceSensingLoop(
         double total_torque = std::sqrt(
             std::pow(force_values[3], 2) + std::pow(force_values[4], 2) + std::pow(force_values[5], 2)
         );
-        if (total_torque > totalTorqueLimit) {
+        if (total_torque_limit.has_value()
+            && total_torque > *total_torque_limit
+        ) {
             force_limit_exceeded = true;
             SPDLOG_INFO("Torque limit exceeded. Total torque: " + std::to_string(total_torque));
             break;
         }
 
         // Check the TCP force/torque does not exceed the limit
-        for (int i = 0; i < 6; i++) {
-            if (std::abs(force_values[i]) > tcpForceTorqueLimit[i]) {
-                force_limit_exceeded = true;
-                SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(force_values[i]));
-                break;
+        if (per_axis_force_torque_limits.has_value()) {
+            for (int i = 0; i < 6; i++) {
+                if (std::abs(force_values[i]) > (*per_axis_force_torque_limits)[i]) {
+                    force_limit_exceeded = true;
+                    SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(force_values[i]));
+                    break;
+                }
             }
         }
 
