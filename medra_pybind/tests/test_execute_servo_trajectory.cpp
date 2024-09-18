@@ -59,7 +59,7 @@ int main(){
             currentPose[2],
             currentPose[3],
             currentPose[4],
-            currentPose[5] + 0.001,
+            currentPose[5],
         };
         forward_trajectory_poses.push_back(newPose);
         reverse_trajectory_poses.insert(reverse_trajectory_poses.begin(), currentPose);
@@ -75,21 +75,22 @@ int main(){
 
     // Execute the trajectory
     for (size_t iters = 0; iters < 100000; ++iters) {
-        std::optional<std::vector<double>> force_vector = std::vector<double>{10000.0, 10000.0, 10.0, 10000.0, 10000.0, 10000.0};
+        // std::optional<std::vector<double>> force_vector = std::vector<double>{10000.0, 10000.0, 10.0, 10000.0, 10000.0, 10000.0};
+        auto total_force_limit = 10.0;
         if (!controller.ExecuteServoTrajectory(
             forward_trajectory,
+            total_force_limit,
             std::nullopt,
-            std::nullopt,
-            force_vector
+            std::nullopt
         )) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
         if (!controller.ExecuteServoTrajectory(
             reverse_trajectory,
+            total_force_limit,
             std::nullopt,
-            std::nullopt,
-            force_vector
+            std::nullopt
         )) {
             std::cout << "Stopped early" << std::endl;
             break;

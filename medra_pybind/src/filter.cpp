@@ -30,9 +30,9 @@ void MeanFilter::AddValue(std::vector<double> new_value) {
 }
 
 std::vector<double> MeanFilter::GetMean() {
-    std::vector<double> mean_vector;
+    std::vector<double> mean_vector = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     for (size_t i = 0; i < measurement_size; i++) {
-        mean_vector.push_back(sum_vector[i] / window_count);
+        mean_vector[i] = sum_vector[i] / window_count;
     }
     return mean_vector;
 }
