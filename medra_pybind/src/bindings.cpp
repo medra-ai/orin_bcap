@@ -77,17 +77,20 @@ PYBIND11_MODULE(_medra_bcap, m) {
 
     // Error handling functions
     .def("ClearError", &DensoController::ClearError, py::call_guard<py::gil_scoped_release>())
-    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>())
+    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>(),
+          py::arg("error_code")
+    )
 
     .def("GetJointPositions", &DensoController::GetJointPositions, py::call_guard<py::gil_scoped_release>())
-    .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>())
-    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>())
-    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>())
+    .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>(),
+          py::arg("traj"), py::arg("total_force_limit"), py::arg("total_torque_limit"), py::arg("per_axis_force_torque_limits")
+    )
+    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>(),
+          py::arg("tool_value")
+    )
+    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>(),
+          py::arg("work_coordinate")
+    )
 
     .def_readonly("current_waypoint_index", &DensoController::current_waypoint_index);
-
-
-  m.def("VRad2Deg", &VRad2Deg);
-  m.def("Rad2Deg", &Rad2Deg);
-  m.def("Deg2Rad", &Deg2Rad);
 }
