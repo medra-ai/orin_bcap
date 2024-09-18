@@ -502,6 +502,7 @@ namespace denso_controller
         // Reset the force sensor to prevent drift in the force readings.
         // Do it here, instead of in the force sensing thread, because this call
         // requires the arm mutex.
+        sleep(0.1);
         hr = write_driver.ForceSensor("0");
 
         // Start a thread to stream force sensor data, setting the
@@ -599,7 +600,7 @@ namespace denso_controller
         const int frequency = 100;           // Hz
         const int period = 1000 / frequency; // period in milliseconds
 
-        const int filter_size = 5;
+        const int filter_size = 3;
         const int force_value_data_size = 6; // x, y, z, rx, ry, rz
         filter::MeanFilter mean_filter(filter_size, force_value_data_size);
 
