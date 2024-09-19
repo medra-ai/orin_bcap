@@ -520,14 +520,11 @@ namespace denso_controller
         // Reset the force sensor to prevent drift in the force readings.
         // Do it here, instead of in the force sensing thread, because this call
         // requires the arm mutex.
-        sleep(0.1);
+        sleep(0.1);  // Wait some time for the arm and sensor to settle.
         hr = write_driver.ForceSensor("0");
 
         // Start a thread to stream force sensor data, setting the
         force_limit_exceeded = false;
-        while (force_limit_exceeded) {
-            sleep(0.001);
-        }
         std::thread force_sensing_thread(
             &DensoController::RunForceSensingLoop,
             this,
@@ -578,20 +575,14 @@ namespace denso_controller
             // SPDLOG_INFO(msg);
         }
 
-        // Stop the force sensing thread.
-        force_limit_exceeded = true;
-        force_sensing_thread.join();
-
         // Close loop servo commands on last waypoint
         if (!force_limit_exceeded)
         {
             ClosedLoopCommandServoJoint(traj.trajectory.back());
         }
 
-        // SPDLOG_INFO("Exec traj done");
-
-        // Exit slave mode
         hr = write_driver.SlvChangeMode(SERVO_MODE_OFF);
+        // Exit slave mode
         if (FAILED(hr))
         {
             std::string err_description = GetErrorDescription(hr);
@@ -599,6 +590,12 @@ namespace denso_controller
             throw ExitSlaveModeException(err_description);
         }
         SPDLOG_INFO("Slave mode OFF");
+
+        // Stop the force sensing thread.
+        force_limit_exceeded = true;
+        force_sensing_thread.join();
+
+        // SPDLOG_INFO("Exec traj done");
 
         return trajectory_execution_finished;
     }
