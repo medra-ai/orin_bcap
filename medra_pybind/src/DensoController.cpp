@@ -530,15 +530,15 @@ namespace denso_controller
         BCAP_VARIANT vntPose, vntReturn;
         for (size_t i = 0; i < traj.size(); i++)
         {
+            current_waypoint_index = i;
             // Stop if the force exceedance condition is true
-            if (force_limit_exceeded)
+            if (current_waypoint_index > 4 && force_limit_exceeded)
             {
                 SPDLOG_INFO("Force limit exceeded after " + std::to_string(current_waypoint_index) + " waypoints. Stopping trajectory execution.");
                 trajectory_execution_finished = false;
                 break;
             }
 
-            current_waypoint_index = i;
             const auto &joint_position = traj.trajectory[i];
             vntPose = VNTFromRadVector(joint_position);
             hr = write_driver.SlvMove(&vntPose, &vntReturn);
