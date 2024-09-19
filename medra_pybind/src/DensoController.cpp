@@ -615,7 +615,7 @@ namespace denso_controller
             return;
         }
 
-        const int frequency = 100;           // Hz
+        const int frequency = 50;           // Hz
         const int period = 1000 / frequency; // period in milliseconds
 
         const int filter_size = 3;
