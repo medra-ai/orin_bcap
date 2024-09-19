@@ -386,7 +386,25 @@ namespace denso_controller
         BCAP_HRESULT hr;
         for (size_t attempt = 0; attempt < 3; ++attempt)
         {
+            // BCAP_VARIANT vnt_mass;
+            // vnt_mass.Type = VT_I4;
+            // vnt_mass.Arrays = 1;
+            // vnt_mass.Value.LongValue = 1025;
+
+            // BCAP_VARIANT vnt_cog;
+            // vnt_cog.Type = VT_R4 | VT_ARRAY;
+            // vnt_cog.Arrays = 3;
+            // vnt_mass.Value.FloatArray[0] = 0.0;
+            // vnt_mass.Value.FloatArray[1] = 0.0;
+            // vnt_mass.Value.FloatArray[2] = 73.0;
+
+            // BCAP_VARIANT vnt_options[2] = {vnt_mass, vnt_cog};
+            BCAP_VARIANT vnt_result;
+
+            std::cout << "ForceSensor" << std::endl;
             hr = bCap_RobotExecute(iSockFD, lhRobot, "ForceSensor", mode, &lResult);
+            // std::cout << "PayLoad" << std::endl;
+            // hr = bCap_RobotExecute2(iSockFD, lhRobot, "ForceSensorPayLoad", &vnt_mass, &vnt_result);
             if (SUCCEEDED(hr))
             {
                 break;
@@ -593,7 +611,7 @@ namespace denso_controller
         // Exit early if no force limits are specified
         if (!total_force_limit.has_value() && !total_torque_limit.has_value() && !per_axis_force_torque_limits.has_value())
         {
-            std::cout << "Exit force sensing loop early" << std::endl;
+            std::cout << "Skip force sensing loop" << std::endl;
             return;
         }
 
