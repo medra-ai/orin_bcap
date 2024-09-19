@@ -49,6 +49,30 @@ namespace denso_controller
         session_name = "read-only";
     }
 
+    void DensoReadDriver::Start()
+    {
+        bCapOpen();
+        SPDLOG_INFO("b-Cap port opened");
+        bCapServiceStart();
+        SPDLOG_INFO("b-Cap service started");
+        bCapControllerConnect();
+        SPDLOG_INFO("Connected to controller");
+        bCapGetRobot();
+        SPDLOG_INFO("Obtained robot handle");
+    }
+
+    void DensoReadDriver::Stop()
+    {
+        bCapReleaseRobot();
+        SPDLOG_INFO("Released robot handle");
+        bCapControllerDisconnect();
+        SPDLOG_INFO("Disconnected from controller");
+        bCapServiceStop();
+        SPDLOG_INFO("b-Cap service stopped");
+        bCapClose();
+        SPDLOG_INFO("b-Cap port closed");
+    }
+
     void DensoReadDriver::bCapOpen()
     {
         SPDLOG_INFO("Initialize and start b-CAP.");
@@ -385,26 +409,10 @@ namespace denso_controller
 
     void DensoController::Start()
     {
-        read_driver.bCapOpen();
-        SPDLOG_INFO("b-Cap port opened for read driver");
-        read_driver.bCapServiceStart();
-        SPDLOG_INFO("b-Cap service started for read driver");
-        read_driver.bCapControllerConnect();
-        SPDLOG_INFO("Connected to controller for read driver");
-        read_driver.bCapGetRobot();
-        SPDLOG_INFO("Obtained robot handle for read driver");
-
-        write_driver.bCapOpen();
-        SPDLOG_INFO("b-Cap port opened for write driver");
-        write_driver.bCapServiceStart();
-        SPDLOG_INFO("b-Cap service started for write driver");
-        write_driver.bCapControllerConnect();
-        SPDLOG_INFO("Connected to controller for write driver");
-        write_driver.bCapGetRobot();
-        SPDLOG_INFO("Obtained robot handle for write driver");
+        read_driver.Start();
+        write_driver.Start();
 
         BCAP_HRESULT hr;
-
         hr = ClearError();
         if FAILED (hr)
         {
@@ -437,15 +445,8 @@ namespace denso_controller
     {
         force_limit_exceeded = true;
 
-        read_driver.bCapReleaseRobot();
-        read_driver.bCapControllerDisconnect();
-        read_driver.bCapServiceStop();
-        read_driver.bCapClose();
-
-        write_driver.bCapReleaseRobot();
-        write_driver.bCapControllerDisconnect();
-        write_driver.bCapServiceStop();
-        write_driver.bCapClose();
+        read_driver.Stop();
+        write_driver.Stop();
     }
 
     BCAP_HRESULT DensoController::ClearError()

@@ -96,14 +96,8 @@ public:
     DensoReadDriver();
 
     // Setup and teardown functions
-    void bCapOpen();
-    void bCapClose();
-    void bCapServiceStart();
-    void bCapServiceStop();
-    void bCapControllerConnect();
-    void bCapControllerDisconnect();
-    void bCapGetRobot();
-    void bCapReleaseRobot();
+    void Start();
+    void Stop();
 
     //// Read functions
     // Populates joint_positions with the current joint values.
@@ -128,6 +122,16 @@ protected:
     int iSockFD;
     uint32_t lhController;
     uint32_t lhRobot;
+
+    // Setup and teardown functions
+    void bCapOpen();
+    void bCapClose();
+    void bCapServiceStart();
+    void bCapServiceStop();
+    void bCapControllerConnect();
+    void bCapControllerDisconnect();
+    void bCapGetRobot();
+    void bCapReleaseRobot();
 };
 
 // Inherits from DensoReadDriver and adds wrapper functions for "write"
