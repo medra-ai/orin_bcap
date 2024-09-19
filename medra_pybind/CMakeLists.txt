@@ -9,7 +9,7 @@ message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 
 # Set the names and sources of the module
 set(MODULE_NAME medra_bcap)
-set(SOURCES 
+set(PYBIND11_SOURCES 
     src/bindings.cpp
     src/b-Cap.c
     src/filter.cpp
@@ -49,7 +49,7 @@ set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
 # Add the pybind module
-pybind11_add_module(_${MODULE_NAME} ${SOURCES})
+pybind11_add_module(_${MODULE_NAME} ${PYBIND11_SOURCES})
 target_link_libraries(_${MODULE_NAME} PRIVATE spdlog::spdlog)
 
 add_executable(
