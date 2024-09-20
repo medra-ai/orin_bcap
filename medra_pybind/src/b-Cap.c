@@ -2728,19 +2728,36 @@ char* utf16le_to_utf8(const uint16_t* utf16_str, size_t utf16_len) {
 static uint32_t copyFromBSTRAsUTF8(void *pDstAsciiPtr, void *pSrcBstrPtr){
     u_char *pbDst = (u_char *)pDstAsciiPtr;
     u_char *pbSrc = (u_char *)pSrcBstrPtr;
-    uint32_t lStrLen,lLen2;
-    copyValue(&lStrLen, pbSrc, BCAP_SIZE_ARGSTRLEN);                    /* Get BStr length */
+    uint32_t lStrLen, lLen2, i;
+    uint16_t *pSrcUtf16;
+
+    // Get BSTR length (in bytes)
+    copyValue(&lStrLen, pbSrc, BCAP_SIZE_ARGSTRLEN);
     pbSrc += BCAP_SIZE_ARGSTRLEN;
-    lLen2 = lStrLen;
+
+    lLen2 = lStrLen;  // Original length in bytes
     if (pbDst != NULL) {
-        char* utf8_str = utf16le_to_utf8((uint16_t*)pbSrc, lStrLen);
-        memcpy(pbDst, utf8_str, lStrLen);
-        free(utf8_str);
-        // add 2 bytes of zeros at the end in case it is utf-16
-        // *(u_short*)(pbDst+lLen2) = 0;
-        // lLen2 += sizeof(u_short);
+        pSrcUtf16 = (uint16_t *)pbSrc;
+        uint32_t numChars = lStrLen / 2;  // Number of UTF-16 code units
+
+        // Convert UTF-16 to ASCII
+        for (i = 0; i < numChars; i++) {
+            uint16_t wChar = pSrcUtf16[i];
+            uint8_t c;
+
+            if (wChar <= 0x7F) {
+                // ASCII character
+                c = (uint8_t)wChar;
+            } else {
+                // Non-ASCII character, replace with '?'
+                c = '?';
+            }
+            pbDst[i] = c;
+        }
+        pbDst[numChars] = '\0';  // Null-terminate the ASCII string
+        lLen2 = numChars;        // Length of ASCII string
     }
-    return (lLen2);
+    return lLen2;
 }
 
 
