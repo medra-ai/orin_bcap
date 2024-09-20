@@ -182,7 +182,7 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadDriver::GetForceValue(std::vector<double> &force_values)
     {
-        double dForce[6];
+        double dForce[8];
         BCAP_HRESULT hr;
         for (size_t attempt = 0; attempt < 3; ++attempt)
         {
@@ -580,13 +580,13 @@ namespace denso_controller
         bool exec_complete = !force_limit_exceeded;
         // Stop the force sensing thread.
         force_limit_exceeded = true;
-        force_sensing_thread.join();
 
-        // Close loop servo commands on last waypoint
+        // Close loop servo commands on last waypoint.
         if (exec_complete)
         {
             ClosedLoopCommandServoJoint(traj.trajectory.back());
         }
+        force_sensing_thread.join();
 
         SPDLOG_INFO("Turning off slave mode");
 
@@ -606,9 +606,9 @@ namespace denso_controller
     }
 
     void DensoController::RunForceSensingLoop(
-        std::optional<double> total_force_limit,
-        std::optional<double> total_torque_limit,
-        std::optional<std::vector<double>> per_axis_force_torque_limits)
+        const std::optional<double> total_force_limit,
+        const std::optional<double> total_torque_limit,
+        const std::optional<std::vector<double>> per_axis_force_torque_limits)
     {
         // Exit early if no force limits are specified
         if (!total_force_limit.has_value() && !total_torque_limit.has_value() && !per_axis_force_torque_limits.has_value())
@@ -708,12 +708,13 @@ namespace denso_controller
 
     void DensoController::ClosedLoopCommandServoJoint(const std::vector<double>& last_waypoint)
     {
+        SPDLOG_INFO("Closed loop servo joint commands");
         /* Repeat the last servo j command until the robot reaches tolerance or timeout */
         double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001; // rad
         double CLOSE_LOOP_TIMEOUT = 0.1;                  // 100ms
         int CLOSE_LOOP_MAX_ITERATION = 10;
         std::vector<double> current_jnt_deg;
-        BCAP_HRESULT hr = read_driver.GetCurJnt(current_jnt_deg);
+        BCAP_HRESULT hr = write_driver.GetCurJnt(current_jnt_deg);
         std::vector<double> current_jnt_rad = VDeg2Rad(current_jnt_deg);
         if (FAILED(hr))
         {
@@ -740,8 +741,12 @@ namespace denso_controller
                 break;
             }
 
-            // Check Joint Tolerance
-            hr = read_driver.GetCurJnt(current_jnt_deg);
+            // Check Joint Tolerance.
+            // Use the write driver here to prevent a race where this thread
+            // and the force sensing loop thread concurrently send commands to
+            // the controller using the same connection, causing a controller
+            // error.
+            hr = write_driver.GetCurJnt(current_jnt_deg);
             if (FAILED(hr))
             {
                 SPDLOG_ERROR("Closed loop servo j commands failed to get current joint position");
