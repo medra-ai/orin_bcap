@@ -99,6 +99,8 @@ public:
     void Start();
     void Stop();
 
+    BCAP_HRESULT ClearError();
+
     //// Read functions
     // Populates joint_positions with the current joint values.
     // joint_positions is mutated into a vector of 8 doubles.
@@ -140,7 +142,6 @@ class DensoReadWriteDriver : public DensoReadDriver {
 public:
     DensoReadWriteDriver();
 
-    BCAP_HRESULT ClearError();
     BCAP_HRESULT ManualReset();
     BCAP_HRESULT Motor(bool command);
     BCAP_HRESULT TakeArm();

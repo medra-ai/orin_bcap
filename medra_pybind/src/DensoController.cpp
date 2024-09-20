@@ -153,6 +153,14 @@ namespace denso_controller
         }
     }
 
+    BCAP_HRESULT DensoReadDriver::ClearError()
+    {
+        long lResult;
+        BCAP_HRESULT hr = bCap_ControllerExecute(
+            iSockFD, lhController, "ClearError", "", &lResult);
+        return hr;
+    }
+
     BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double> &joint_positions)
     {
         double dJnt[8];
@@ -165,6 +173,7 @@ namespace denso_controller
                 break;
             }
             SPDLOG_WARN("Failed to get joint pos, attempt ", std::to_string(attempt));
+            ClearError();
         }
         if (FAILED(hr))
         {
@@ -192,6 +201,7 @@ namespace denso_controller
                 break;
             }
             SPDLOG_WARN("Failed to get force value, attempt ", std::to_string(attempt));
+            ClearError();
         }
         if (FAILED(hr))
         {
@@ -260,13 +270,6 @@ namespace denso_controller
         session_name = "write";
     }
 
-    BCAP_HRESULT DensoReadWriteDriver::ClearError()
-    {
-        long lResult;
-        BCAP_HRESULT hr = bCap_ControllerExecute(
-            iSockFD, lhController, "ClearError", "", &lResult);
-        return hr;
-    }
 
     BCAP_HRESULT DensoReadWriteDriver::ManualReset()
     {
