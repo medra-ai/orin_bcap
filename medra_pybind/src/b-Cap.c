@@ -2440,7 +2440,7 @@ BCAP_HRESULT Packet_GetResult(BCAP_PACKET *pRecPacket, void *pResult){
                     //memcpy(pResult, (char*)pArgValue->data+BCAP_SIZE_ARGSTRLEN, pArgValue->lArrays);
 
                     for (i = 0; i < pArgValue->lArrays; i++) {
-                        lSize = copyFromBSTRAsUTF8(pDstAscii, pSrcBstr);
+                        lSize = copyFromBSTR(pDstAscii, pSrcBstr);
                         pDstAscii += lSize;
                         pSrcBstr += BCAP_SIZE_ARGSTRLEN + ((lSize -1) * 2); /* lSize include Terminator,so (lSize -1) * 2) */
                     }

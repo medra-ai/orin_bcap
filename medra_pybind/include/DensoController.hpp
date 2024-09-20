@@ -201,10 +201,10 @@ public:
     // The return value is true if the trajectory fully executed, and false if
     // it was stopped early.
     bool ExecuteServoTrajectory(
-        RobotTrajectory& traj,
-        std::optional<double> total_force_limit = std::nullopt,
-        std::optional<double> total_torque_limit = std::nullopt,
-        std::optional<std::vector<double>> per_axis_force_torque_limits = std::nullopt
+        const RobotTrajectory& traj,
+        const std::optional<double> total_force_limit = std::nullopt,
+        const std::optional<double> total_torque_limit = std::nullopt,
+        const std::optional<std::vector<double>> per_axis_force_torque_limits = std::nullopt
     );
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
@@ -229,14 +229,14 @@ private:
     // This function runs while force_limit_exceeded is false.
     // If the force limit is exceeded, force_limit_exceeded is set to true.
     void RunForceSensingLoop(
-        std::optional<double> total_force_limit,
-        std::optional<double> total_torque_limit,
-        std::optional<std::vector<double>> per_axis_force_torque_limits
+        const std::optional<double> total_force_limit,
+        const std::optional<double> total_torque_limit,
+        const std::optional<std::vector<double>> per_axis_force_torque_limits
     );
 
     // Repeatedly commands a joint position in slave mode until the robot's
     // current joint position is within a small tolerance of it.
-    void ClosedLoopCommandServoJoint(std::vector<double> waypoint);
+    void ClosedLoopCommandServoJoint(const std::vector<double>& waypoint);
 
     // Error handling
     void HandleError(BCAP_HRESULT error_code, const char* error_description);

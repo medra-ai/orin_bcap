@@ -401,10 +401,7 @@ namespace denso_controller
             // BCAP_VARIANT vnt_options[2] = {vnt_mass, vnt_cog};
             BCAP_VARIANT vnt_result;
 
-            std::cout << "ForceSensor" << std::endl;
             hr = bCap_RobotExecute(iSockFD, lhRobot, "ForceSensor", mode, &lResult);
-            // std::cout << "PayLoad" << std::endl;
-            // hr = bCap_RobotExecute2(iSockFD, lhRobot, "ForceSensorPayLoad", &vnt_mass, &vnt_result);
             if (SUCCEEDED(hr))
             {
                 break;
@@ -503,10 +500,10 @@ namespace denso_controller
     }
 
     bool DensoController::ExecuteServoTrajectory(
-        RobotTrajectory &traj,
-        std::optional<double> total_force_limit,
-        std::optional<double> total_torque_limit,
-        std::optional<std::vector<double>> per_axis_force_torque_limits)
+        const RobotTrajectory &traj,
+        const std::optional<double> total_force_limit,
+        const std::optional<double> total_torque_limit,
+        const std::optional<std::vector<double>> per_axis_force_torque_limits)
     {
         // std::cout << total_force_limit << " " << total_torque_limit << " "
         //           << per_axis_force_torque_limits << std::endl;
@@ -517,11 +514,16 @@ namespace denso_controller
 
         auto arm_mutex = DensoArmMutex(write_driver);
 
-        // Reset the force sensor to prevent drift in the force readings.
-        // Do it here, instead of in the force sensing thread, because this call
-        // requires the arm mutex.
-        sleep(0.1);  // Wait some time for the arm and sensor to settle.
-        hr = write_driver.ForceSensor("0");
+        if (total_force_limit.has_value()
+            || total_torque_limit.has_value()
+            || per_axis_force_torque_limits.has_value()
+        ) {
+            // Reset the force sensor to prevent drift in the force readings.
+            // Do it here, instead of in the force sensing thread, because this call
+            // requires the arm mutex.
+            sleep(0.1);  // Wait some time for the arm and sensor to settle.
+            hr = write_driver.ForceSensor("0");
+        }
 
         // Start a thread to stream force sensor data, setting the
         force_limit_exceeded = false;
@@ -575,11 +577,18 @@ namespace denso_controller
             // SPDLOG_INFO(msg);
         }
 
+        bool exec_complete = !force_limit_exceeded;
+        // Stop the force sensing thread.
+        force_limit_exceeded = true;
+        force_sensing_thread.join();
+
         // Close loop servo commands on last waypoint
-        if (!force_limit_exceeded)
+        if (exec_complete)
         {
             ClosedLoopCommandServoJoint(traj.trajectory.back());
         }
+
+        SPDLOG_INFO("Turning off slave mode");
 
         hr = write_driver.SlvChangeMode(SERVO_MODE_OFF);
         // Exit slave mode
@@ -590,10 +599,6 @@ namespace denso_controller
             throw ExitSlaveModeException(err_description);
         }
         SPDLOG_INFO("Slave mode OFF");
-
-        // Stop the force sensing thread.
-        force_limit_exceeded = true;
-        force_sensing_thread.join();
 
         // SPDLOG_INFO("Exec traj done");
 
@@ -701,13 +706,12 @@ namespace denso_controller
         force_sensing_log.close();
     }
 
-    void DensoController::ClosedLoopCommandServoJoint(std::vector<double> last_waypoint)
+    void DensoController::ClosedLoopCommandServoJoint(const std::vector<double>& last_waypoint)
     {
         /* Repeat the last servo j command until the robot reaches tolerance or timeout */
         double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001; // rad
         double CLOSE_LOOP_TIMEOUT = 0.1;                  // 100ms
         int CLOSE_LOOP_MAX_ITERATION = 10;
-
         std::vector<double> current_jnt_deg;
         BCAP_HRESULT hr = read_driver.GetCurJnt(current_jnt_deg);
         std::vector<double> current_jnt_rad = VDeg2Rad(current_jnt_deg);
@@ -718,7 +722,7 @@ namespace denso_controller
 
         // Print the initial joint error
         std::vector<double> joint_error;
-        for (int i = 0; i < current_jnt_rad.size(); ++i)
+        for (int i = 0; i < last_waypoint.size(); ++i)
         {
             joint_error.push_back(current_jnt_rad[i] - last_waypoint[i]);
         }
@@ -769,7 +773,7 @@ namespace denso_controller
 
         // Print the joint remaining joint error
         joint_error.clear();
-        for (int i = 0; i < current_jnt_rad.size(); ++i)
+        for (int i = 0; i < last_waypoint.size(); ++i)
         {
             joint_error.push_back(current_jnt_rad[i] - last_waypoint[i]);
         }
