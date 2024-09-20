@@ -616,7 +616,7 @@ namespace denso_controller
         // Exit early if no force limits are specified
         if (!total_force_limit.has_value() && !total_torque_limit.has_value() && !per_axis_force_torque_limits.has_value())
         {
-            std::cout << "Skip force sensing loop" << std::endl;
+            SPDLOG_INFO("Skip force sensing loop");
             return;
         }
 
@@ -670,8 +670,8 @@ namespace denso_controller
                 std::pow(force_values[0], 2) + std::pow(force_values[1], 2) + std::pow(force_values[2], 2));
             if (total_force_limit.has_value() && total_force > *total_force_limit)
             {
-                std::cout << "Force limit exceeded. Total force: " << std::to_string(total_force) << std::endl;
-                std::cout << "Force limit: " << *total_force_limit << std::endl;
+                SPDLOG_INFO("Force limit exceeded. Total force: " + std::to_string(total_force)
+                            + ". Force limit: " + std::to_string(*total_force_limit));
                 force_limit_exceeded = true;
                 break;
             }
@@ -681,7 +681,8 @@ namespace denso_controller
                 std::pow(force_values[3], 2) + std::pow(force_values[4], 2) + std::pow(force_values[5], 2));
             if (total_torque_limit.has_value() && total_torque > *total_torque_limit)
             {
-                std::cout << "Torque limit exceeded. Total torque: " << std::to_string(total_torque) << std::endl;
+                SPDLOG_INFO("Torque limit exceeded. Total torque: " + std::to_string(total_torque)
+                            + ". Torque limit: " + std::to_string(*total_torque_limit));
                 force_limit_exceeded = true;
                 break;
             }
@@ -693,7 +694,7 @@ namespace denso_controller
                 {
                     if (std::abs(force_values[i]) > (*per_axis_force_torque_limits)[i])
                     {
-                        std::cout << "TCP force/torque limit exceeded. Force/Torque: " << std::to_string(force_values[i]) << std::endl;
+                        SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(force_values[i]));
                         force_limit_exceeded = true;
                         break;
                     }
