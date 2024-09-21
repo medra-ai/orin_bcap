@@ -673,14 +673,6 @@ namespace denso_controller
         const int force_value_data_size = 6; // x, y, z, rx, ry, rz
         filter::MeanFilter mean_filter(filter_size, force_value_data_size);
 
-        std::ofstream force_sensing_log("force_sensing_log.txt", std::ios::app);
-        if (!force_sensing_log.is_open())
-        {
-            SPDLOG_ERROR("Failed to open force sensing log file.");
-            Stop();
-            throw bCapException("Force sensing logging failed.");
-        }
-
         BCAP_HRESULT hr;
         std::vector<double> force_values;
         while (!atomic_force_limit_exceeded)
@@ -700,16 +692,15 @@ namespace denso_controller
             // Use the mean of the last filter_size force values
             force_values = mean_filter.GetMean();
 
-            // Write the 6-vector data to the file
-            for (size_t i = 0; i < force_values.size(); ++i)
-            {
-                force_sensing_log << force_values[i];
-                if (i < force_values.size() - 1)
-                {
-                    force_sensing_log << " "; // Separate values with a space
-                }
-            }
-            force_sensing_log << "\n"; // Newline after each vector
+            // Log force data with a special prefix so that we can easily
+            // filter it in the logs.
+            SPDLOG_INFO("[FORCE]("
+                        + std::to_string(force_values[0]) + ", "
+                        + std::to_string(force_values[1]) + ", "
+                        + std::to_string(force_values[2]) + ", "
+                        + std::to_string(force_values[3]) + ", "
+                        + std::to_string(force_values[4]) + ", "
+                        + std::to_string(force_values[5]) + ")");
 
             // Check the total force does not exceed the limit
             double total_force = std::sqrt(
@@ -752,8 +743,6 @@ namespace denso_controller
             std::chrono::duration<double, std::milli> elapsed = end - start;
             std::this_thread::sleep_for(std::chrono::milliseconds(period) - elapsed);
         }
-
-        force_sensing_log.close();
     }
 
     DensoController::ClosedLoopCommandServoJointResult
