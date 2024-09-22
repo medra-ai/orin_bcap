@@ -491,7 +491,7 @@ namespace denso_controller
         atomic_trajectory_execution_enabled = enabled;
     }
 
-    DensoController::TrajectoryExecutionResult
+    TrajectoryExecutionResult
     DensoController::ExecuteServoTrajectory(
         const RobotTrajectory &traj,
         const std::optional<double> total_force_limit,

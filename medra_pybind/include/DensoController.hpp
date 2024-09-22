@@ -37,6 +37,30 @@ using TimestampedTrajectory = std::vector<TimestampedWaypoint>;
 using TimestampedForceReading = std::tuple<std::chrono::system_clock::time_point, std::vector<double>>;
 using TimestampedForceSequence = std::vector<TimestampedForceReading>;
 
+enum class ExecuteServoTrajectoryError {
+    SUCCESS,
+    ENTER_SLAVE_MODE_FAILED,
+    SLAVE_MOVE_FAILED,
+    EXIT_SLAVE_MODE_FAILED,
+    FORCE_SENSOR_RESET_FAILED
+};
+enum class ExecuteServoTrajectoryResult {
+    COMPLETE,
+    FORCE_LIMIT_EXCEEDED,
+    ERROR,
+    EARLY_STOP_REQUESTED
+};
+
+// Log data for a single trajectory execution.
+struct TrajectoryExecutionResult {
+    ExecuteServoTrajectoryError error_code;
+    ExecuteServoTrajectoryResult result_code;
+    // Log of times and joint positions for each waypoint in the trajectory.
+    TimestampedTrajectory joint_positions;
+    // Log of times and force/torque values for each waypoint in the trajectory.
+    TimestampedForceSequence force_torque_values;
+};
+
 class bCapException : public std::exception {
 public:
     bCapException(std::string msg) {
@@ -198,30 +222,6 @@ public:
     // Returns a tuple containing the error code and the joint positions in
     // radians.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
-
-    enum class ExecuteServoTrajectoryError {
-        SUCCESS,
-        ENTER_SLAVE_MODE_FAILED,
-        SLAVE_MOVE_FAILED,
-        EXIT_SLAVE_MODE_FAILED,
-        FORCE_SENSOR_RESET_FAILED
-    };
-    enum class ExecuteServoTrajectoryResult {
-        COMPLETE,
-        FORCE_LIMIT_EXCEEDED,
-        ERROR,
-        EARLY_STOP_REQUESTED
-    };
-
-    // Log data for a single trajectory execution.
-    struct TrajectoryExecutionResult {
-        DensoController::ExecuteServoTrajectoryError error_code;
-        DensoController::ExecuteServoTrajectoryResult result_code;
-        // Log of times and joint positions for each waypoint in the trajectory.
-        TimestampedTrajectory joint_positions;
-        // Log of times and force/torque values for each waypoint in the trajectory.
-        TimestampedForceSequence force_torque_values;
-    };
 
     // Executes a trajectory of joint angles in radians.
     // total_force_limit, total_torque_limit, and per_axis_force_torque_limits

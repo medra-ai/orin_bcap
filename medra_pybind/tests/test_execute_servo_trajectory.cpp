@@ -75,7 +75,7 @@ int main(){
             std::nullopt,
             std::nullopt
         );
-        if (result.error_code != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
+        if (result.error_code != denso_controller::ExecuteServoTrajectoryError::SUCCESS) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
@@ -86,7 +86,7 @@ int main(){
             std::nullopt,
             std::nullopt
         );
-        if (result.error_code != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
+        if (result.error_code != denso_controller::ExecuteServoTrajectoryError::SUCCESS) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
