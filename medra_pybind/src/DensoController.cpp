@@ -713,16 +713,6 @@ namespace denso_controller
             auto now = std::chrono::system_clock::now();
             force_torque_values.push_back({now, force_values});
 
-            // Log force data with a special prefix so that we can easily
-            // filter it in the logs.
-            SPDLOG_INFO("[FORCE]("
-                        + std::to_string(force_values[0]) + ", "
-                        + std::to_string(force_values[1]) + ", "
-                        + std::to_string(force_values[2]) + ", "
-                        + std::to_string(force_values[3]) + ", "
-                        + std::to_string(force_values[4]) + ", "
-                        + std::to_string(force_values[5]) + ")");
-
             // Check the total force does not exceed the limit
             double total_force = std::sqrt(
                 std::pow(force_values[0], 2) + std::pow(force_values[1], 2) + std::pow(force_values[2], 2));
