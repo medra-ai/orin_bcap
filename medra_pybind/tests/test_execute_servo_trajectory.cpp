@@ -75,11 +75,7 @@ int main(){
             std::nullopt,
             std::nullopt
         );
-        if (std::get<0>(result) != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
-            std::cout << "Error executing forward trajectory" << std::endl;
-            break;
-        }
-        if (std::get<1>(result) == denso_controller::DensoController::ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED) {
+        if (result.error_code != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
@@ -90,11 +86,7 @@ int main(){
             std::nullopt,
             std::nullopt
         );
-        if (std::get<0>(result) != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
-            std::cout << "Error executing reverse trajectory" << std::endl;
-            break;
-        }
-        if (std::get<1>(result) == denso_controller::DensoController::ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED) {
+        if (result.error_code != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
             std::cout << "Stopped early" << std::endl;
             break;
         }

@@ -31,6 +31,12 @@
 
 namespace denso_controller {
 
+using TimestampedWaypoint = std::tuple<std::chrono::system_clock::time_point, std::vector<double>>;
+using TimestampedTrajectory = std::vector<TimestampedWaypoint>;
+
+using TimestampedForceReading = std::tuple<std::chrono::system_clock::time_point, std::vector<double>>;
+using TimestampedForceSequence = std::vector<TimestampedForceReading>;
+
 class bCapException : public std::exception {
 public:
     bCapException(std::string msg) {
@@ -206,6 +212,17 @@ public:
         ERROR,
         EARLY_STOP_REQUESTED
     };
+
+    // Log data for a single trajectory execution.
+    struct TrajectoryExecutionResult {
+        DensoController::ExecuteServoTrajectoryError error_code;
+        DensoController::ExecuteServoTrajectoryResult result_code;
+        // Log of times and joint positions for each waypoint in the trajectory.
+        TimestampedTrajectory joint_positions;
+        // Log of times and force/torque values for each waypoint in the trajectory.
+        TimestampedForceSequence force_torque_values;
+    };
+
     // Executes a trajectory of joint angles in radians.
     // total_force_limit, total_torque_limit, and per_axis_force_torque_limits
     // describe stopping criteria for trajectory execution based on force
@@ -215,9 +232,7 @@ public:
     //   2. If the total torque exceeds total_torque_limit Nm, or
     //   3. If the force or torque on any axis exceeds the corresponding limit
     //     in per_axis_force_torque_limits.
-    // Returns an error code and a result for whether execution finished.
-    std::tuple<ExecuteServoTrajectoryError, ExecuteServoTrajectoryResult>
-    ExecuteServoTrajectory(
+    TrajectoryExecutionResult ExecuteServoTrajectory(
         const RobotTrajectory& traj,
         const std::optional<double> total_force_limit = std::nullopt,
         const std::optional<double> total_torque_limit = std::nullopt,
@@ -254,10 +269,13 @@ private:
     // in a separate thread.
     // This function runs while force_limit_exceeded is false.
     // If the force limit is exceeded, force_limit_exceeded is set to true.
+    // This function populates force_torque_values with time-stamped
+    // force-torque readings.
     void RunForceSensingLoop(
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits
+        const std::optional<std::vector<double>> per_axis_force_torque_limits,
+        TimestampedForceSequence& force_torque_values
     );
 
     enum class EnterSlaveModeResult {
