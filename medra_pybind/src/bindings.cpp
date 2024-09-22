@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <pybind11/chrono.h>
 
 #include "logging.hpp"
 #include "DensoController.hpp"
@@ -13,6 +14,11 @@ namespace py = pybind11;
 using namespace denso_controller;
 
 PYBIND11_MODULE(_medra_bcap, m) {
+  py::class_<TrajectoryExecutionResult>(m, "TrajectoryExecutionResult")
+    .def_readonly("execution_completed", &TrajectoryExecutionResult::execution_completed)
+    .def_readonly("joint_positions", &TrajectoryExecutionResult::joint_positions)
+    .def_readonly("force_torque_values", &TrajectoryExecutionResult::force_torque_values);
+
   py::class_<BCAP_VARIANT>(m, "BCAP_VARIANT")
     .def(py::init<>())
     .def_readwrite("Type", &BCAP_VARIANT::Type)
