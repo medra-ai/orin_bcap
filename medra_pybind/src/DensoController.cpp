@@ -566,9 +566,13 @@ namespace denso_controller
 
             if (FAILED(hr))
             {
+                // Stop the force sensing thread to prevent it from running indefinitely.
+                force_limit_exceeded = true;
+
                 std::string err_description = GetErrorDescription(hr);
                 SPDLOG_ERROR("Failed to execute b-CAP slave move. " + err_description);
                 std::string msg = "Index " + std::to_string(i) + " of " + std::to_string(traj.size()) + " ErrDescription: " + err_description;
+
                 throw SlaveMoveException(msg);
             }
 
