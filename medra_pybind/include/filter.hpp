@@ -18,8 +18,9 @@ class MeanFilter {
         const size_t measurement_size;
         size_t window_count;  // Number of values in the window.
 
-        // Stores the sum of values in the window.
+        // Stores the last window_size values.
         std::queue<std::vector<double>> window;
+        // Stores the sum of values in the window.
         std::vector<double> sum_vector;
     };
 
