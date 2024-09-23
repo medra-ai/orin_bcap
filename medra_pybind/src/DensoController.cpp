@@ -10,6 +10,7 @@
 #include <iostream>
 #include <math.h>
 #include <time.h>
+#include <thread>
 
 #include <fstream>
 
@@ -410,7 +411,8 @@ namespace denso_controller
                 break;
             }
             SPDLOG_WARN("Failed to execute ForceSensor; attempt ", std::to_string(attempt));
-            sleep(0.001);
+            // Give some time to the controller in case it is busy
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         if FAILED (hr)
         {
@@ -521,10 +523,11 @@ namespace denso_controller
             || total_torque_limit.has_value()
             || per_axis_force_torque_limits.has_value()
         ) {
+            // Wait some time for the arm and sensor to settle.
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             // Reset the force sensor to prevent drift in the force readings.
             // Do it here, instead of in the force sensing thread, because this call
             // requires the arm mutex.
-            sleep(0.1);  // Wait some time for the arm and sensor to settle.
             hr = write_driver.ForceSensor("0");
         }
 
