@@ -390,21 +390,6 @@ namespace denso_controller
         BCAP_HRESULT hr;
         for (size_t attempt = 0; attempt < 3; ++attempt)
         {
-            // BCAP_VARIANT vnt_mass;
-            // vnt_mass.Type = VT_I4;
-            // vnt_mass.Arrays = 1;
-            // vnt_mass.Value.LongValue = 1025;
-
-            // BCAP_VARIANT vnt_cog;
-            // vnt_cog.Type = VT_R4 | VT_ARRAY;
-            // vnt_cog.Arrays = 3;
-            // vnt_mass.Value.FloatArray[0] = 0.0;
-            // vnt_mass.Value.FloatArray[1] = 0.0;
-            // vnt_mass.Value.FloatArray[2] = 73.0;
-
-            // BCAP_VARIANT vnt_options[2] = {vnt_mass, vnt_cog};
-            BCAP_VARIANT vnt_result;
-
             hr = bCap_RobotExecute(iSockFD, lhRobot, "ForceSensor", mode, &lResult);
             if (SUCCEEDED(hr))
             {
