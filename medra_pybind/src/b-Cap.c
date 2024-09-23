@@ -2699,22 +2699,6 @@ static uint32_t copyFromBSTR(void *pDstAsciiPtr, void *pSrcBstrPtr){
     return (lLen2);
 }
 
-// Function to convert UTF-16LE to UTF-8
-char* utf16le_to_utf8(const uint16_t* utf16_str, size_t utf16_len) {
-    wchar_t* wide_str = malloc((utf16_len + 1) * sizeof(wchar_t));
-    for (size_t i = 0; i < utf16_len; i++) {
-        wide_str[i] = utf16_str[i];
-    }
-    wide_str[utf16_len] = L'\0';
-
-    size_t utf8_len = wcstombs(NULL, wide_str, 0);
-    char* utf8_str = malloc(utf8_len + 1);
-    wcstombs(utf8_str, wide_str, utf8_len + 1);
-
-    free(wide_str);
-    return utf8_str;
-}
-
 /**	Convert From BSTR into AsciiZ
  * NOTE: This function is used to convert BSTR to UTF-8
  *

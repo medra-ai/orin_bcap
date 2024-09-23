@@ -68,55 +68,29 @@ PYBIND11_MODULE(_medra_bcap, m) {
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<>())
 
-    // Low level commands
-    .def("bCapOpen", &DensoController::bCapOpen, py::call_guard<py::gil_scoped_release>())
-    .def("bCapClose", &DensoController::bCapClose, py::call_guard<py::gil_scoped_release>())
-    .def("bCapServiceStart", &DensoController::bCapServiceStart, py::call_guard<py::gil_scoped_release>())
-    .def("bCapServiceStop", &DensoController::bCapServiceStop, py::call_guard<py::gil_scoped_release>())
-    .def("bCapControllerConnect", &DensoController::bCapControllerConnect, py::call_guard<py::gil_scoped_release>())
-    .def("bCapControllerDisconnect", &DensoController::bCapControllerDisconnect, py::call_guard<py::gil_scoped_release>())
-    .def("bCapGetRobot", &DensoController::bCapGetRobot, py::call_guard<py::gil_scoped_release>())
-    .def("bCapReleaseRobot", &DensoController::bCapReleaseRobot, py::call_guard<py::gil_scoped_release>())
-    .def("bCapClearError", &DensoController::bCapClearError, py::call_guard<py::gil_scoped_release>())
-    .def("bCapRobotExecute", &DensoController::bCapRobotExecute, py::call_guard<py::gil_scoped_release>())
-    .def("bCapRobotMove", &DensoController::bCapRobotMove, py::call_guard<py::gil_scoped_release>())
-    .def("bCapMotor", &DensoController::bCapMotor, py::call_guard<py::gil_scoped_release>())
-    .def("bCapSlvChangeMode", &DensoController::bCapSlvChangeMode, py::call_guard<py::gil_scoped_release>())
-    .def("bCapSlvMove", &DensoController::bCapSlvMove, py::call_guard<py::gil_scoped_release>())
-    .def("SetExtSpeed", &DensoController::SetExtSpeed, py::call_guard<py::gil_scoped_release>())
-    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>())
-    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>())
-    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>())
-    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>())
-
     // High level commands
-    .def("bCapEnterProcess", [](DensoController &dc) {
+    .def("Start", [](DensoController &dc) {
       setup_pybind11_logging();
-      return dc.bCapEnterProcess();
+      return dc.Start();
     }, py::call_guard<py::gil_scoped_release>())
+    .def("Stop", &DensoController::Stop, py::call_guard<py::gil_scoped_release>())
 
-    .def("bCapExitProcess", &DensoController::bCapExitProcess, py::call_guard<py::gil_scoped_release>())
-    .def("CommandServoJoint", &DensoController::CommandServoJoint, py::call_guard<py::gil_scoped_release>())
-    .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>())
+    // Error handling functions
+    .def("ClearError", &DensoController::ClearError, py::call_guard<py::gil_scoped_release>())
+    .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>(),
+          py::arg("error_code")
+    )
 
-    // Utilities
-    .def("CommandFromVector", &DensoController::CommandFromVector, py::call_guard<py::gil_scoped_release>())
-    .def("GetCurJnt", &DensoController::GetCurJnt, py::call_guard<py::gil_scoped_release>())
-    .def("VectorFromVNT", &DensoController::VectorFromVNT, py::call_guard<py::gil_scoped_release>())
-    .def("RadVectorFromVNT", &DensoController::RadVectorFromVNT, py::call_guard<py::gil_scoped_release>())
-    .def("VNTFromVector", &DensoController::VNTFromVector, py::call_guard<py::gil_scoped_release>())
-    .def("VNTFromRadVector", &DensoController::VNTFromRadVector, py::call_guard<py::gil_scoped_release>())
+    .def("GetJointPositions", &DensoController::GetJointPositions, py::call_guard<py::gil_scoped_release>())
+    .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>(),
+          py::arg("traj"), py::arg("total_force_limit"), py::arg("total_torque_limit"), py::arg("per_axis_force_torque_limits")
+    )
+    .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>(),
+          py::arg("tool_value")
+    )
+    .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>(),
+          py::arg("work_coordinate")
+    )
 
-    // Class members
-    .def_readonly("server_ip_address", &DensoController::server_ip_address)
-    .def_readonly("server_port_num", &DensoController::server_port_num)
-    .def_readonly("iSockFD", &DensoController::iSockFD)
-    .def_readonly("lhController", &DensoController::lhController)
-    .def_readonly("lhRobot", &DensoController::lhRobot)
     .def_readonly("current_waypoint_index", &DensoController::current_waypoint_index);
-
-
-  m.def("VRad2Deg", &VRad2Deg);
-  m.def("Rad2Deg", &Rad2Deg);
-  m.def("Deg2Rad", &Deg2Rad);
 }
