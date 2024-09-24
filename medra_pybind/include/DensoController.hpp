@@ -15,6 +15,7 @@
 #include <tuple>
 #include <atomic>
 #include <optional>
+#include <chrono>
 
 #define DEFAULT_SERVER_IP_ADDRESS    "192.168.0.1"
 #define DEFAULT_SERVER_PORT_NUM      5007
@@ -30,6 +31,17 @@
 #define SERVO_MODE_OFF "0"   // Servo mode off
 
 namespace denso_controller {
+
+// Log data for a single trajectory execution.
+struct TrajectoryExecutionResult {
+    // True if the trajectory fully executed, and false if it was stopped early
+    // due to exceeding force or torque limits.
+    bool execution_completed;
+    // Log of times and joint positions for each waypoint in the trajectory.
+    std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>> joint_positions;
+    // Log of times and force/torque values for each waypoint in the trajectory.
+    std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>> force_torque_values;
+};
 
 class bCapException : public std::exception {
 public:
@@ -201,7 +213,7 @@ public:
     //     in per_axis_force_torque_limits.
     // The return value is true if the trajectory fully executed, and false if
     // it was stopped early.
-    bool ExecuteServoTrajectory(
+    TrajectoryExecutionResult ExecuteServoTrajectory(
         const RobotTrajectory& traj,
         const std::optional<double> total_force_limit = std::nullopt,
         const std::optional<double> total_torque_limit = std::nullopt,
@@ -229,10 +241,13 @@ private:
     // in a separate thread.
     // This function runs while force_limit_exceeded is false.
     // If the force limit is exceeded, force_limit_exceeded is set to true.
+    // This function also populates force_torque_values with time-stamped
+    // force-torque readings.
     void RunForceSensingLoop(
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits
+        const std::optional<std::vector<double>> per_axis_force_torque_limits,
+        std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>>& force_torque_values
     );
 
     // Repeatedly commands a joint position in slave mode until the robot's

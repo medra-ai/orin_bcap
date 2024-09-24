@@ -489,7 +489,7 @@ namespace denso_controller
         return {hr, joint_positions};
     }
 
-    bool DensoController::ExecuteServoTrajectory(
+    TrajectoryExecutionResult DensoController::ExecuteServoTrajectory(
         const RobotTrajectory &traj,
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
@@ -518,12 +518,15 @@ namespace denso_controller
 
         // Start a thread to stream force sensor data, setting the
         force_limit_exceeded = false;
+        std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>> force_torque_values;
         std::thread force_sensing_thread(
             &DensoController::RunForceSensingLoop,
             this,
             total_force_limit,
             total_torque_limit,
-            per_axis_force_torque_limits);
+            per_axis_force_torque_limits,
+            std::ref(force_torque_values)
+        );
 
         // Enter slave mode
         hr = write_driver.SlvChangeMode(SERVO_MODE_ON);
@@ -536,6 +539,7 @@ namespace denso_controller
         SPDLOG_INFO("Slave mode ON");
 
         // Execute the trajectory
+        std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>> joint_positions;
         BCAP_VARIANT vntPose, vntReturn;
         for (size_t i = 0; i < traj.size(); i++)
         {
@@ -551,6 +555,9 @@ namespace denso_controller
             const auto &joint_position = traj.trajectory[i];
             vntPose = VNTFromRadVector(joint_position);
             hr = write_driver.SlvMove(&vntPose, &vntReturn);
+
+            auto now = std::chrono::system_clock::now();
+            joint_positions.push_back({now, joint_position});
 
             if (FAILED(hr))
             {
@@ -597,13 +604,19 @@ namespace denso_controller
 
         // SPDLOG_INFO("Exec traj done");
 
-        return trajectory_execution_finished;
+        return {
+            trajectory_execution_finished,
+            joint_positions,
+            force_torque_values
+        };
     }
 
     void DensoController::RunForceSensingLoop(
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits)
+        const std::optional<std::vector<double>> per_axis_force_torque_limits,
+        std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>>& force_torque_values
+    )
     {
         // Exit early if no force limits are specified
         if (!total_force_limit.has_value() && !total_torque_limit.has_value() && !per_axis_force_torque_limits.has_value())
@@ -619,14 +632,6 @@ namespace denso_controller
         const int force_value_data_size = 6; // x, y, z, rx, ry, rz
         filter::MeanFilter mean_filter(filter_size, force_value_data_size);
 
-        std::ofstream force_sensing_log("force_sensing_log.txt", std::ios::app);
-        if (!force_sensing_log.is_open())
-        {
-            SPDLOG_ERROR("Failed to open force sensing log file.");
-            Stop();
-            throw bCapException("Force sensing logging failed.");
-        }
-
         BCAP_HRESULT hr;
         std::vector<double> force_values;
         while (!force_limit_exceeded)
@@ -639,23 +644,14 @@ namespace denso_controller
             {
                 HandleError(hr, "GetForceValue failed.");
             }
-            // SPDLOG_INFO("size of force_values 1: ", std::to_string(force_values.size()));
             mean_filter.AddValue(force_values);
-            // SPDLOG_INFO("size of force_values 2: ", std::to_string(force_values.size()));
 
             // Use the mean of the last filter_size force values
             force_values = mean_filter.GetMean();
 
-            // Write the 6-vector data to the file
-            for (size_t i = 0; i < force_values.size(); ++i)
-            {
-                force_sensing_log << force_values[i];
-                if (i < force_values.size() - 1)
-                {
-                    force_sensing_log << " "; // Separate values with a space
-                }
-            }
-            force_sensing_log << "\n"; // Newline after each vector
+            // Update the log of force-torque readings
+            auto now = std::chrono::system_clock::now();
+            force_torque_values.push_back({now, force_values});
 
             // Check the total force does not exceed the limit
             double total_force = std::sqrt(
@@ -698,8 +694,6 @@ namespace denso_controller
             std::chrono::duration<double, std::milli> elapsed = end - start;
             std::this_thread::sleep_for(std::chrono::milliseconds(period) - elapsed);
         }
-
-        force_sensing_log.close();
     }
 
     void DensoController::ClosedLoopCommandServoJoint(const std::vector<double>& last_waypoint)
