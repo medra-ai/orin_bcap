@@ -173,7 +173,7 @@ namespace denso_controller
             {
                 break;
             }
-            SPDLOG_WARN("Failed to get joint pos, attempt ", std::to_string(attempt));
+            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt));
             ClearError();
         }
         if (FAILED(hr))
@@ -201,7 +201,7 @@ namespace denso_controller
             {
                 break;
             }
-            SPDLOG_WARN("Failed to get force value, attempt ", std::to_string(attempt));
+            SPDLOG_WARN("Failed to get force value, attempt " + std::to_string(attempt));
             ClearError();
         }
         if (FAILED(hr))
@@ -375,7 +375,8 @@ namespace denso_controller
             {
                 break;
             }
-            SPDLOG_WARN("Failed to execute slvMove, attempt ", std::to_string(attempt));
+            SPDLOG_WARN("Failed to execute slvMove, attempt " + std::to_string(attempt));
+            ClearError();
         }
         if (FAILED(hr))
         {
@@ -395,7 +396,7 @@ namespace denso_controller
             {
                 break;
             }
-            SPDLOG_WARN("Failed to execute ForceSensor; attempt ", std::to_string(attempt));
+            SPDLOG_WARN("Failed to execute ForceSensor; attempt " + std::to_string(attempt));
             // Give some time to the controller in case it is busy
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
@@ -556,6 +557,7 @@ namespace denso_controller
             {
                 // Stop the force sensing thread to prevent it from running indefinitely.
                 force_limit_exceeded = true;
+                force_sensing_thread.join();
 
                 std::string err_description = GetErrorDescription(hr);
                 SPDLOG_ERROR("Failed to execute b-CAP slave move. " + err_description);
@@ -706,9 +708,9 @@ namespace denso_controller
     {
         SPDLOG_INFO("Closed loop servo joint commands");
         /* Repeat the last servo j command until the robot reaches tolerance or timeout */
-        double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001; // rad
-        double CLOSE_LOOP_TIMEOUT = 0.1;                  // 100ms
-        int CLOSE_LOOP_MAX_ITERATION = 10;
+        const double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001; // rad
+        const double CLOSE_LOOP_TIMEOUT = 0.1;                  // 100ms
+        const int CLOSE_LOOP_MAX_ITERATION = 10;
         std::vector<double> current_jnt_deg;
         BCAP_HRESULT hr = write_driver.GetCurJnt(current_jnt_deg);
         std::vector<double> current_jnt_rad = VDeg2Rad(current_jnt_deg);
@@ -726,7 +728,7 @@ namespace denso_controller
         char buffer[256] = {0};
         std::sprintf(buffer, "Before closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
                      joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
-        SPDLOG_DEBUG(std::string(buffer));
+        SPDLOG_INFO(std::string(buffer));
 
         int count = 0;
         while (true)
