@@ -535,6 +535,7 @@ namespace denso_controller
             throw EnterSlaveModeException(err_description);
         }
         SPDLOG_INFO("Slave mode ON");
+        auto slave_mode_on = std::chrono::steady_clock::now();
 
         // Execute the trajectory
         BCAP_VARIANT vntPose, vntReturn;
@@ -551,6 +552,12 @@ namespace denso_controller
 
             const auto &joint_position = traj.trajectory[i];
             vntPose = VNTFromRadVector(joint_position);
+            if (i == 0) {
+                auto time_of_first_move = std::chrono::steady_clock::now();
+                auto elapsed = time_of_first_move - slave_mode_on;
+                SPDLOG_INFO("Time to first move: " + std::to_string(elapsed.count()));
+            }
+
             hr = write_driver.SlvMove(&vntPose, &vntReturn);
 
             if (FAILED(hr))
