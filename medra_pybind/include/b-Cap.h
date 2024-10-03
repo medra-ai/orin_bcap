@@ -129,6 +129,17 @@ typedef int32_t BCAP_HRESULT;
  */
 #define BCAP_E_INVALIDARG ((BCAP_HRESULT)0x80070057L)
 
+/**
+ * @def BCAP_E_COMMAND_BUFFER_EMPTY
+ * @brief Slave mode command buffer is empty.
+ */
+#define BCAP_E_COMMAND_BUFFER_EMPTY ((BCAP_HRESULT)0x84201482L)
+
+/**
+ * @def BCAP_E_COMMAND_POSITION_GEN_STOPPED
+ * @brief Command position generation is stopped.
+ */
+#define BCAP_E_COMMAND_POSITION_GEN_STOPPED ((BCAP_HRESULT)0x84201486L)
 
 /* b-CAP Type id */
 #define VT_EMPTY                0           /* (0Byte) */

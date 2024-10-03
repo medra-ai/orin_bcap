@@ -243,7 +243,7 @@ namespace denso_controller
     std::string DensoReadDriver::GetErrorDescription(BCAP_HRESULT error_code)
     {
         char err_code_str[32];
-        sprintf(err_code_str, "%d", error_code);
+        snprintf(err_code_str, sizeof(err_code_str), "%d", error_code);
         // Denso defined local receive buffer LOCALRECBUFFER_SZ = 1024
         char error_description[1024] = {0};
 
@@ -468,7 +468,7 @@ namespace denso_controller
         BCAP_HRESULT hr = read_driver.GetCurJnt(joint_positions);
 
         // Convert joint positions to radians
-        for (int i = 0; i < joint_positions.size(); i++)
+        for (size_t i = 0; i < joint_positions.size(); i++)
         {
             joint_positions[i] = Deg2Rad(joint_positions[i]);
         }
@@ -592,7 +592,8 @@ namespace denso_controller
                 case ClosedLoopCommandServoJointResult::SUCCESS:
                     SPDLOG_INFO("Closed loop servo joint commands successful");
                     break;
-                default:  // failure
+                case ClosedLoopCommandServoJointResult::GET_CUR_JNT_FAILED:
+                case ClosedLoopCommandServoJointResult::SLAVE_MOVE_FAILED:
                     // The trajectory is essentially complete at this point, so we
                     // don't do anything special if the closed loop commands fail.
                     SPDLOG_ERROR("Closed loop servo joint commands failed");
@@ -737,7 +738,6 @@ namespace denso_controller
         SPDLOG_INFO("Closed loop servo joint commands");
         /* Repeat the last servo j command until the robot reaches tolerance or timeout */
         const double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001; // rad
-        const double CLOSE_LOOP_TIMEOUT = 0.1;                  // 100ms
         const int CLOSE_LOOP_MAX_ITERATION = 10;
         std::vector<double> current_jnt_deg;
         BCAP_HRESULT hr = write_driver.GetCurJnt(current_jnt_deg);
@@ -749,7 +749,7 @@ namespace denso_controller
 
         // Print the initial joint error
         std::vector<double> joint_error;
-        for (int i = 0; i < last_waypoint.size(); ++i)
+        for (size_t i = 0; i < last_waypoint.size(); ++i)
         {
             joint_error.push_back(current_jnt_rad[i] - last_waypoint[i]);
         }
@@ -781,7 +781,7 @@ namespace denso_controller
             current_jnt_rad = VDeg2Rad(current_jnt_deg);
 
             bool all_within_tolerance = true;
-            for (int i = 0; i < current_jnt_rad.size(); ++i)
+            for (size_t i = 0; i < current_jnt_rad.size(); ++i)
             {
                 if (std::abs(current_jnt_rad[i] - last_waypoint[i]) > CLOSE_LOOP_JOINT_ANGLE_TOLERANCE)
                 {
@@ -795,8 +795,6 @@ namespace denso_controller
             }
 
             // Command the last waypoint again
-            BCAP_VARIANT vntPose = VNTFromRadVector(last_waypoint);
-            BCAP_VARIANT vntReturn;
             auto result = CommandServoJoint(last_waypoint);
             if (result != CommandServoJointResult::SUCCESS)
             {
@@ -809,7 +807,7 @@ namespace denso_controller
 
         // Print the joint remaining joint error
         joint_error.clear();
-        for (int i = 0; i < last_waypoint.size(); ++i)
+        for (size_t i = 0; i < last_waypoint.size(); ++i)
         {
             joint_error.push_back(current_jnt_rad[i] - last_waypoint[i]);
         }
@@ -868,11 +866,25 @@ namespace denso_controller
             {
                 return CommandServoJointResult::SUCCESS;
             }
-            SPDLOG_WARN("Failed to command servo joint, attempt " + std::to_string(attempt));
-            ClearError();
-            write_driver.ManualReset();
-            write_driver.Motor(true);
-            EnterSlaveMode();  // If this call fails, it will be caught in the next iteration
+
+            // Retry the command for certain valid errors.
+            bool is_valid_error = false;
+            for (auto error : VALID_SLVMOVE_ERRORS) {
+                if (hr == error) {
+                    is_valid_error = true;
+                    break;
+                }
+            }
+            if (is_valid_error) {
+                SPDLOG_WARN("Failed to command servo joint, attempt " + std::to_string(attempt));
+                ClearError();
+                write_driver.ManualReset();
+                write_driver.Motor(true);
+                EnterSlaveMode();  // If this call fails, it will be caught in the next iteration
+            } else {
+                SPDLOG_ERROR("Command servo joint failed. Not retrying.");
+                return CommandServoJointResult::SLAVE_MOVE_FAILED;
+            }
         }
 
         if (FAILED(hr))

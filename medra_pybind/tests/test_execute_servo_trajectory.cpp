@@ -16,13 +16,7 @@
 #define AMPLITUDE  1
 
 int main(){
-    int iSockFD;
-    uint32_t lResult;
-    uint32_t lhController, lhRobot;
     BCAP_HRESULT hr = BCAP_S_OK;
-
-    double dJnt[8];
-    BCAP_VARIANT vntPose, vntReturn;
 
     denso_controller::DensoController controller;
     controller.Start();
@@ -66,12 +60,10 @@ int main(){
         currentPose = newPose;
     }
 
-    const size_t dimension = 6;
     RobotTrajectory forward_trajectory;
     forward_trajectory.trajectory = forward_trajectory_poses;
     RobotTrajectory reverse_trajectory;
     reverse_trajectory.trajectory = reverse_trajectory_poses;
-
 
     // Execute the trajectory
     for (size_t iters = 0; iters < 100000; ++iters) {

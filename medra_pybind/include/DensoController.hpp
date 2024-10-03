@@ -29,6 +29,11 @@
 #define SERVO_MODE_ON "514"  // Mode 2 J-type
 #define SERVO_MODE_OFF "0"   // Servo mode off
 
+const std::vector<BCAP_HRESULT> VALID_SLVMOVE_ERRORS({
+    BCAP_E_COMMAND_BUFFER_EMPTY,
+    BCAP_E_COMMAND_POSITION_GEN_STOPPED
+});
+
 namespace denso_controller {
 
 class bCapException : public std::exception {
