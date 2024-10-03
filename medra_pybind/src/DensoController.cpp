@@ -870,6 +870,8 @@ namespace denso_controller
             }
             SPDLOG_WARN("Failed to command servo joint, attempt " + std::to_string(attempt));
             ClearError();
+            write_driver.ManualReset();
+            write_driver.Motor(true);
             EnterSlaveMode();  // If this call fails, it will be caught in the next iteration
         }
 
