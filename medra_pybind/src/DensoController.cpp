@@ -532,7 +532,10 @@ namespace denso_controller
             // Stop if the force exceedance condition is true
             if (current_waypoint_index > 4 && force_limit_exceeded)
             {
-                SPDLOG_INFO("Force limit exceeded after " + std::to_string(current_waypoint_index) + " waypoints. Stopping trajectory execution.");
+                SPDLOG_INFO("Force limit exceeded after "
+                            + std::to_string(current_waypoint_index)
+                            + " of " + std::to_string(traj.size())
+                            + " waypoints. Stopping trajectory execution.");
                 break;
             }
 
