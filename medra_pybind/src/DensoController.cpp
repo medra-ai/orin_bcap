@@ -367,22 +367,7 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadWriteDriver::SlvMove(BCAP_VARIANT *pose, BCAP_VARIANT *result)
     {
-        BCAP_HRESULT hr;
-        for (size_t attempt = 0; attempt < 3; ++attempt)
-        {
-            hr = bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
-            if (SUCCEEDED(hr))
-            {
-                break;
-            }
-            SPDLOG_WARN("Failed to execute slvMove, attempt " + std::to_string(attempt));
-            ClearError();
-        }
-        if (FAILED(hr))
-        {
-            SPDLOG_ERROR("Failed to execute b-CAP slave move.");
-        }
-        return hr;
+        return bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
     }
 
     BCAP_HRESULT DensoReadWriteDriver::ForceSensor(const char *mode)
@@ -490,19 +475,13 @@ namespace denso_controller
         return {hr, joint_positions};
     }
 
-    bool DensoController::ExecuteServoTrajectory(
+    std::tuple<DensoController::ExecuteServoTrajectoryError, DensoController::ExecuteServoTrajectoryResult>
+    DensoController::ExecuteServoTrajectory(
         const RobotTrajectory &traj,
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
         const std::optional<std::vector<double>> per_axis_force_torque_limits)
     {
-        // std::cout << total_force_limit << " " << total_torque_limit << " "
-        //           << per_axis_force_torque_limits << std::endl;
-
-        bool trajectory_execution_finished = true;
-        BCAP_HRESULT hr;
-        long lResult;
-
         auto arm_mutex = DensoArmMutex(write_driver);
 
         if (total_force_limit.has_value()
@@ -514,10 +493,11 @@ namespace denso_controller
             // Reset the force sensor to prevent drift in the force readings.
             // Do it here, instead of in the force sensing thread, because this call
             // requires the arm mutex.
-            hr = write_driver.ForceSensor("0");
+            write_driver.ForceSensor("0");
+            // TODO: handle error
         }
 
-        // Start a thread to stream force sensor data, setting the
+        // Start a thread to stream force sensor data
         force_limit_exceeded = false;
         std::thread force_sensing_thread(
             &DensoController::RunForceSensingLoop,
@@ -527,18 +507,25 @@ namespace denso_controller
             per_axis_force_torque_limits);
 
         // Enter slave mode
-        hr = write_driver.SlvChangeMode(SERVO_MODE_ON);
-        if (FAILED(hr))
+        SPDLOG_INFO("Entering slave mode");
+        switch (EnterSlaveMode())
         {
-            std::string err_description = GetErrorDescription(hr);
-            SPDLOG_ERROR("Failed to enter b-CAP slave mode." + err_description);
-            throw EnterSlaveModeException(err_description);
+            case EnterSlaveModeResult::SUCCESS:
+                SPDLOG_INFO("Slave mode ON");
+                break;
+            case EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED:
+                // TODO: Get the stack of errors from the controller
+                // std::string err_description = GetErrorDescription(hr);
+                SPDLOG_ERROR("Failed to enter b-CAP slave mode.");  // + err_description);
+                return {
+                    ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED,
+                    ExecuteServoTrajectoryResult::ERROR
+                };
         }
-        SPDLOG_INFO("Slave mode ON");
-        auto slave_mode_on = std::chrono::steady_clock::now();
 
         // Execute the trajectory
-        BCAP_VARIANT vntPose, vntReturn;
+        // BCAP_VARIANT vntPose, vntReturn;
+        CommandServoJointResult result;
         for (size_t i = 0; i < traj.size(); i++)
         {
             current_waypoint_index = i;
@@ -546,31 +533,38 @@ namespace denso_controller
             if (current_waypoint_index > 4 && force_limit_exceeded)
             {
                 SPDLOG_INFO("Force limit exceeded after " + std::to_string(current_waypoint_index) + " waypoints. Stopping trajectory execution.");
-                trajectory_execution_finished = false;
                 break;
             }
 
             const auto &joint_position = traj.trajectory[i];
-            vntPose = VNTFromRadVector(joint_position);
-            if (i == 0) {
-                auto time_of_first_move = std::chrono::steady_clock::now();
-                auto elapsed = time_of_first_move - slave_mode_on;
-                SPDLOG_INFO("Time to first move: " + std::to_string(elapsed.count()));
-            }
-
-            hr = write_driver.SlvMove(&vntPose, &vntReturn);
-
-            if (FAILED(hr))
+            // vntPose = VNTFromRadVector(joint_position);
+            // if (i == 0) {
+            //     auto time_of_first_move = std::chrono::steady_clock::now();
+            //     auto elapsed = time_of_first_move - slave_mode_on;
+            //     SPDLOG_INFO("Time to first move: " + std::to_string(elapsed.count()));
+            // }
+            result = CommandServoJoint(joint_position);
+            switch (result)
             {
-                // Stop the force sensing thread to prevent it from running indefinitely.
-                force_limit_exceeded = true;
-                force_sensing_thread.join();
+                case CommandServoJointResult::SUCCESS:
+                    break;
+                case CommandServoJointResult::SLAVE_MOVE_FAILED:
+                    SPDLOG_ERROR("ExecuteServoTrajectory failed at waypoint " + std::to_string(i));
 
-                std::string err_description = GetErrorDescription(hr);
-                SPDLOG_ERROR("Failed to execute b-CAP slave move. " + err_description);
-                std::string msg = "Index " + std::to_string(i) + " of " + std::to_string(traj.size()) + " ErrDescription: " + err_description;
+                    // Stop the force sensing thread to prevent it from running indefinitely.
+                    force_limit_exceeded = true;
+                    force_sensing_thread.join();
 
-                throw SlaveMoveException(msg);
+                    // std::string err_description = GetErrorDescription(hr);
+                    // SPDLOG_ERROR("Error description: " + err_description);
+
+                    // No need to exit slave mode here because the controller
+                    // releases slave mode when an error occurs.
+
+                    return {
+                        ExecuteServoTrajectoryError::SLAVE_MOVE_FAILED,
+                        ExecuteServoTrajectoryResult::ERROR
+                    };
             }
 
             // Print the joint positions
@@ -582,31 +576,54 @@ namespace denso_controller
         }
 
         bool exec_complete = !force_limit_exceeded;
-        // Stop the force sensing thread.
+        // Stop the force sensing thread by triggering the stop condition.
+        // Don't join the force sensing thread here because it may block this
+        // thread for too long, causing command position buffer underflow.
         force_limit_exceeded = true;
 
         // Close loop servo commands on last waypoint.
         if (exec_complete)
         {
-            ClosedLoopCommandServoJoint(traj.trajectory.back());
+            switch (ClosedLoopCommandServoJoint(traj.trajectory.back()))
+            {
+                case ClosedLoopCommandServoJointResult::SUCCESS:
+                    SPDLOG_INFO("Closed loop servo joint commands successful");
+                    break;
+                default:  // failure
+                    // The trajectory is essentially complete at this point, so we
+                    // don't do anything special if the closed loop commands fail.
+                    SPDLOG_ERROR("Closed loop servo joint commands failed");
+                    ClearError();
+                    break;
+            }
         }
         force_sensing_thread.join();
 
+        ExecuteServoTrajectoryResult trajectory_result = (
+            exec_complete ?
+            ExecuteServoTrajectoryResult::COMPLETE :
+            ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED
+        );
+
         SPDLOG_INFO("Turning off slave mode");
-
-        hr = write_driver.SlvChangeMode(SERVO_MODE_OFF);
-        // Exit slave mode
-        if (FAILED(hr))
+        switch (ExitSlaveMode())
         {
-            std::string err_description = GetErrorDescription(hr);
-            SPDLOG_ERROR("Failed to exit b-CAP slave mode." + err_description);
-            throw ExitSlaveModeException(err_description);
+            case ExitSlaveModeResult::SUCCESS:
+                SPDLOG_INFO("Slave mode OFF");
+                break;
+            case ExitSlaveModeResult::EXIT_SLAVE_MODE_FAILED:
+                // std::string err_description = GetErrorDescription(hr);
+                // SPDLOG_ERROR("Failed to exit b-CAP slave mode." + err_description);
+                return {
+                    ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED,
+                    trajectory_result
+                };
         }
-        SPDLOG_INFO("Slave mode OFF");
 
-        // SPDLOG_INFO("Exec traj done");
-
-        return trajectory_execution_finished;
+        return {
+            ExecuteServoTrajectoryError::SUCCESS,
+            trajectory_result
+        };
     }
 
     void DensoController::RunForceSensingLoop(
@@ -711,7 +728,8 @@ namespace denso_controller
         force_sensing_log.close();
     }
 
-    void DensoController::ClosedLoopCommandServoJoint(const std::vector<double>& last_waypoint)
+    DensoController::ClosedLoopCommandServoJointResult
+    DensoController::ClosedLoopCommandServoJoint(const std::vector<double>& last_waypoint)
     {
         SPDLOG_INFO("Closed loop servo joint commands");
         /* Repeat the last servo j command until the robot reaches tolerance or timeout */
@@ -755,7 +773,7 @@ namespace denso_controller
             if (FAILED(hr))
             {
                 SPDLOG_ERROR("Closed loop servo j commands failed to get current joint position");
-                break;
+                return ClosedLoopCommandServoJointResult::GET_CUR_JNT_FAILED;
             }
             current_jnt_rad = VDeg2Rad(current_jnt_deg);
 
@@ -776,7 +794,12 @@ namespace denso_controller
             // Command the last waypoint again
             BCAP_VARIANT vntPose = VNTFromRadVector(last_waypoint);
             BCAP_VARIANT vntReturn;
-            write_driver.SlvMove(&vntPose, &vntReturn);
+            auto result = CommandServoJoint(last_waypoint);
+            if (result != CommandServoJointResult::SUCCESS)
+            {
+                SPDLOG_ERROR("Closed loop servo j commands failed to command servo joint");
+                return ClosedLoopCommandServoJointResult::SLAVE_MOVE_FAILED;
+            }
 
             count++;
         }
@@ -791,6 +814,8 @@ namespace denso_controller
         std::sprintf(buffer, "After %d closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
                      count, joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
         SPDLOG_DEBUG(std::string(buffer));
+
+        return ClosedLoopCommandServoJointResult::SUCCESS;
     }
 
     void DensoController::HandleError(BCAP_HRESULT error_code, const char *error_description)
@@ -803,6 +828,54 @@ namespace denso_controller
         Stop();
         throw bCapException(
             "Error code: " + std::to_string(error_code) + ". Error description: " + error_description + ". Controller error message: " + controller_error);
+    }
+
+    DensoController::EnterSlaveModeResult
+    DensoController::EnterSlaveMode() {
+        BCAP_HRESULT hr = write_driver.SlvChangeMode(SERVO_MODE_ON);
+        if (FAILED(hr))
+        {
+            SPDLOG_ERROR("Failed to enter b-CAP slave mode.");
+            return EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED;
+        }
+        return EnterSlaveModeResult::SUCCESS;
+    }
+
+    DensoController::ExitSlaveModeResult
+    DensoController::ExitSlaveMode() {
+        BCAP_HRESULT hr = write_driver.SlvChangeMode(SERVO_MODE_OFF);
+        if (FAILED(hr))
+        {
+            SPDLOG_ERROR("Failed to exit b-CAP slave mode.");
+            return ExitSlaveModeResult::EXIT_SLAVE_MODE_FAILED;
+        }
+        return ExitSlaveModeResult::SUCCESS;
+    }
+
+    DensoController::CommandServoJointResult
+    DensoController::CommandServoJoint(const std::vector<double> &joint_position)
+    {
+        BCAP_VARIANT vntPose = VNTFromRadVector(joint_position);
+        BCAP_VARIANT vntReturn;
+        BCAP_HRESULT hr;
+        for (size_t attempt = 0; attempt < 3; ++attempt)
+        {
+            hr = write_driver.SlvMove(&vntPose, &vntReturn);
+            if (SUCCEEDED(hr))
+            {
+                return CommandServoJointResult::SUCCESS;
+            }
+            SPDLOG_WARN("Failed to command servo joint, attempt " + std::to_string(attempt));
+            ClearError();
+            EnterSlaveMode();  // If this call fails, it will be caught in the next iteration
+        }
+
+        if (FAILED(hr))
+        {
+            SPDLOG_ERROR("Failed to command servo joint.");
+            return CommandServoJointResult::SLAVE_MOVE_FAILED;
+        }
+        return CommandServoJointResult::SUCCESS;
     }
 
     ////////////////////////////// Utilities //////////////////////////////
