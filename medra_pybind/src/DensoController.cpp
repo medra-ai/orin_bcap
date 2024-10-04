@@ -263,11 +263,11 @@ namespace denso_controller
     BCAP_HRESULT DensoReadDriver::SetupTimer()
     {
         BCAP_HRESULT hr = bCap_ControllerGetVariable(
-            iSockFD, lhController, "@CURRENT_TIME", "@ifnotmember", &current_time_handle
+            iSockFD, lhController, "@TIME", "@ifnotmember", &time_handle
         );
         if FAILED (hr)
         {
-            SPDLOG_ERROR("Failed to get @CURRENT_TIME variable");
+            SPDLOG_ERROR("Failed to get @TIME variable");
         }
         return hr;
     }
@@ -276,7 +276,7 @@ namespace denso_controller
     {
         uint32_t timestamp = 0;
         BCAP_VARIANT vntResult;
-        BCAP_HRESULT hr = bCap_VariableGetValue(iSockFD, current_time_handle, &vntResult);
+        BCAP_HRESULT hr = bCap_VariableGetValue(iSockFD, time_handle, &vntResult);
         if FAILED (hr)
         {
             SPDLOG_ERROR("Failed to get timestamp");

@@ -127,7 +127,7 @@ public:
     std::string GetErrorDescription(BCAP_HRESULT error_code);
 
     // Variable handle for @CURRENT_TIME
-    uint32_t current_time_handle;
+    uint32_t time_handle;
     BCAP_HRESULT SetupTimer();
     uint32_t Timestamp();
 
@@ -298,6 +298,8 @@ private:
     BCAP_VARIANT VNTFromRadVector(std::vector<double> vect0);
 
     // Gets a timestamp from the controller.
+    // Time is measured in milliseconds since the controller's boot time.
+    
     uint32_t Timestamp();
 };
 
