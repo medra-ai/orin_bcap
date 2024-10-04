@@ -239,6 +239,8 @@ public:
 
     int current_waypoint_index;
 
+    // Gets a timestamp from the controller.
+    uint32_t Timestamp();
 private:
     // Denso b-CAP drivers, one for read-only operations and one for read-write
     // operations.
@@ -296,11 +298,6 @@ private:
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
     BCAP_VARIANT VNTFromRadVector(std::vector<double> vect0);
-
-    // Gets a timestamp from the controller.
-    // Time is measured in milliseconds since the controller's boot time.
-    
-    uint32_t Timestamp();
 };
 
 

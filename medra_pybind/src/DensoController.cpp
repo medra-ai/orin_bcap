@@ -275,13 +275,10 @@ namespace denso_controller
     uint32_t DensoReadDriver::Timestamp()
     {
         uint32_t timestamp = 0;
-        BCAP_VARIANT vntResult;
-        BCAP_HRESULT hr = bCap_VariableGetValue(iSockFD, time_handle, &vntResult);
+        BCAP_HRESULT hr = bCap_VariableGetValue(iSockFD, time_handle, &timestamp);
         if FAILED (hr)
         {
             SPDLOG_ERROR("Failed to get timestamp");
-        } else {
-            timestamp = vntResult.Value.LongValue;
         }
         return timestamp;
     }

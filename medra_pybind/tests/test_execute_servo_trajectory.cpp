@@ -32,6 +32,12 @@ int main(){
     std::string err_description = controller.GetErrorDescription(hr);
     std::cout << "CurJnt err description: " << err_description << std::endl;
 
+    while (true) {
+        uint32_t timestamp = controller.Timestamp();
+        std::cout << timestamp << std::endl;
+        sleep(1);
+    }
+
     currentPose = std::get<1>(jt_tuple);
     if (FAILED(hr)) {
         std::cerr << "Failed to get current joint position" << std::endl;
