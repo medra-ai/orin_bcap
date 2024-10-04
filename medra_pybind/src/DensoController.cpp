@@ -552,7 +552,11 @@ namespace denso_controller
                 case CommandServoJointResult::SUCCESS:
                     break;
                 case CommandServoJointResult::SLAVE_MOVE_FAILED:
-                    SPDLOG_ERROR("ExecuteServoTrajectory failed at waypoint " + std::to_string(i));
+                    SPDLOG_ERROR(
+                        "ExecuteServoTrajectory failed at waypoint "
+                        + std::to_string(i)
+                        + " of " + std::to_string(traj.size())
+                    );
 
                     // Stop the force sensing thread to prevent it from running indefinitely.
                     force_limit_exceeded = true;
@@ -872,6 +876,7 @@ namespace denso_controller
             for (auto error : VALID_SLVMOVE_ERRORS) {
                 if (hr == error) {
                     is_valid_error = true;
+                    SPDLOG_WARN("Matched buffer underflow error: " + std::to_string(error));
                     break;
                 }
             }
@@ -882,7 +887,9 @@ namespace denso_controller
                 write_driver.Motor(true);
                 EnterSlaveMode();  // If this call fails, it will be caught in the next iteration
             } else {
-                SPDLOG_ERROR("Command servo joint failed. Not retrying.");
+                SPDLOG_ERROR("Command servo joint failed with code "
+                             + std::to_string(hr)
+                             + ". Not retrying.");
                 return CommandServoJointResult::SLAVE_MOVE_FAILED;
             }
         }

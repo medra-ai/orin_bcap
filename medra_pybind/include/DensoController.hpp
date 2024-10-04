@@ -29,9 +29,13 @@
 #define SERVO_MODE_ON "514"  // Mode 2 J-type
 #define SERVO_MODE_OFF "0"   // Servo mode off
 
+// List of errors which we can retry SlvMove on.
 const std::vector<BCAP_HRESULT> VALID_SLVMOVE_ERRORS({
     BCAP_E_COMMAND_BUFFER_EMPTY,
-    BCAP_E_COMMAND_POSITION_GEN_STOPPED
+    BCAP_E_COMMAND_POSITION_GEN_STOPPED,
+    // Another common error during buffer underflow is BCAP_E_SLVMODE_OFF.
+    // We don't catch this one since it could be caused by a host of errors
+    // which may not all be valid.
 });
 
 namespace denso_controller {

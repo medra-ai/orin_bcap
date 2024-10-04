@@ -141,6 +141,12 @@ typedef int32_t BCAP_HRESULT;
  */
 #define BCAP_E_COMMAND_POSITION_GEN_STOPPED ((BCAP_HRESULT)0x84201486L)
 
+/**
+ * @def BCAP_E_SLVMODE_OFF
+ * @brief Slave move command was executed while slave mode was off.
+ */
+#define BCAP_E_SLVMODE_OFF ((BCAP_HRESULT)0x83500121L)
+
 /* b-CAP Type id */
 #define VT_EMPTY                0           /* (0Byte) */
 #define VT_NULL                 1           /* (0Byte) */
