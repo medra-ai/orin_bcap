@@ -126,6 +126,11 @@ public:
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
     std::string GetErrorDescription(BCAP_HRESULT error_code);
 
+    // Variable handle for @CURRENT_TIME
+    uint32_t current_time_handle;
+    BCAP_HRESULT SetupTimer();
+    uint32_t Timestamp();
+
 protected:
     const char* session_name;
     const char* server_ip_address;
@@ -291,6 +296,9 @@ private:
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
     BCAP_VARIANT VNTFromRadVector(std::vector<double> vect0);
+
+    // Gets a timestamp from the controller.
+    uint32_t Timestamp();
 };
 
 

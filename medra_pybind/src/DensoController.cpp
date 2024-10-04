@@ -260,6 +260,32 @@ namespace denso_controller
         return std::string(error_description);
     }
 
+    BCAP_HRESULT DensoReadDriver::SetupTimer()
+    {
+        BCAP_HRESULT hr = bCap_ControllerGetVariable(
+            iSockFD, lhController, "@CURRENT_TIME", "@ifnotmember", &current_time_handle
+        );
+        if FAILED (hr)
+        {
+            SPDLOG_ERROR("Failed to get @CURRENT_TIME variable");
+        }
+        return hr;
+    }
+
+    uint32_t DensoReadDriver::Timestamp()
+    {
+        uint32_t timestamp = 0;
+        BCAP_VARIANT vntResult;
+        BCAP_HRESULT hr = bCap_VariableGetValue(iSockFD, current_time_handle, &vntResult);
+        if FAILED (hr)
+        {
+            SPDLOG_ERROR("Failed to get timestamp");
+        } else {
+            timestamp = vntResult.Value.LongValue;
+        }
+        return timestamp;
+    }
+
     DensoReadWriteDriver::DensoReadWriteDriver()
     {
         server_ip_address = DEFAULT_SERVER_IP_ADDRESS;
@@ -430,6 +456,12 @@ namespace denso_controller
             HandleError(hr, "MotorOn failed.");
         }
         current_waypoint_index = 0;
+
+        hr = read_driver.SetupTimer();
+        if FAILED (hr)
+        {
+            HandleError(hr, "SetupTimer failed.");
+        }
     }
 
     void DensoController::Stop()
@@ -961,6 +993,11 @@ namespace denso_controller
             vnt.Value.DoubleArray[i] = Rad2Deg(vect0[i]);
         }
         return vnt;
+    }
+
+    uint32_t DensoController::Timestamp()
+    {
+        return read_driver.Timestamp();
     }
 
     std::vector<double> VRad2Deg(std::vector<double> vect0)
