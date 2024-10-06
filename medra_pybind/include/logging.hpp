@@ -39,6 +39,7 @@ LevelFilter map_level(spdlog::level::level_enum level) {
       return LevelFilter::Error;
     case spdlog::level::critical:
       return LevelFilter::Critical;
+    case spdlog::level::n_levels:
     case spdlog::level::off:
     default:
       return LevelFilter::Off;

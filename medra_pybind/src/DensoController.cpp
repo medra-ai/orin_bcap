@@ -863,43 +863,13 @@ namespace denso_controller
         BCAP_VARIANT vntPose = VNTFromRadVector(joint_position);
         BCAP_VARIANT vntReturn;
         BCAP_HRESULT hr;
-        for (size_t attempt = 0; attempt < 3; ++attempt)
+        hr = write_driver.SlvMove(&vntPose, &vntReturn);
+        if (SUCCEEDED(hr))
         {
-            hr = write_driver.SlvMove(&vntPose, &vntReturn);
-            if (SUCCEEDED(hr))
-            {
-                return CommandServoJointResult::SUCCESS;
-            }
-
-            // Retry the command for certain valid errors.
-            bool is_valid_error = false;
-            for (auto error : VALID_SLVMOVE_ERRORS) {
-                if (hr == error) {
-                    is_valid_error = true;
-                    SPDLOG_WARN("Matched buffer underflow error: " + std::to_string(error));
-                    break;
-                }
-            }
-            if (is_valid_error) {
-                SPDLOG_WARN("Failed to command servo joint, attempt " + std::to_string(attempt));
-                ClearError();
-                write_driver.ManualReset();
-                write_driver.Motor(true);
-                EnterSlaveMode();  // If this call fails, it will be caught in the next iteration
-            } else {
-                SPDLOG_ERROR("Command servo joint failed with code "
-                             + std::to_string(hr)
-                             + ". Not retrying.");
-                return CommandServoJointResult::SLAVE_MOVE_FAILED;
-            }
+            return CommandServoJointResult::SUCCESS;
         }
-
-        if (FAILED(hr))
-        {
-            SPDLOG_ERROR("Failed to command servo joint.");
-            return CommandServoJointResult::SLAVE_MOVE_FAILED;
-        }
-        return CommandServoJointResult::SUCCESS;
+        SPDLOG_ERROR("Failed to command servo joint.");
+        return CommandServoJointResult::SLAVE_MOVE_FAILED;
     }
 
     ////////////////////////////// Utilities //////////////////////////////
