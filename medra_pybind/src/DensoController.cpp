@@ -493,8 +493,14 @@ namespace denso_controller
             // Reset the force sensor to prevent drift in the force readings.
             // Do it here, instead of in the force sensing thread, because this call
             // requires the arm mutex.
-            write_driver.ForceSensor("0");
-            // TODO: handle error
+            BCAP_HRESULT hr = write_driver.ForceSensor("0");
+            if (FAILED(hr))
+            {
+                return {
+                    ExecuteServoTrajectoryError::FORCE_SENSOR_RESET_FAILED,
+                    ExecuteServoTrajectoryResult::ERROR
+                };
+            }
         }
 
         // Start a thread to stream force sensor data
@@ -514,8 +520,6 @@ namespace denso_controller
                 SPDLOG_INFO("Slave mode ON");
                 break;
             case EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED:
-                // TODO: Get the stack of errors from the controller
-                // std::string err_description = GetErrorDescription(hr);
                 SPDLOG_ERROR("Failed to enter b-CAP slave mode.");  // + err_description);
                 return {
                     ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED,
@@ -562,12 +566,8 @@ namespace denso_controller
                     force_limit_exceeded = true;
                     force_sensing_thread.join();
 
-                    // std::string err_description = GetErrorDescription(hr);
-                    // SPDLOG_ERROR("Error description: " + err_description);
-
                     // No need to exit slave mode here because the controller
                     // releases slave mode when an error occurs.
-
                     return {
                         ExecuteServoTrajectoryError::SLAVE_MOVE_FAILED,
                         ExecuteServoTrajectoryResult::ERROR
@@ -620,8 +620,7 @@ namespace denso_controller
                 SPDLOG_INFO("Slave mode OFF");
                 break;
             case ExitSlaveModeResult::EXIT_SLAVE_MODE_FAILED:
-                // std::string err_description = GetErrorDescription(hr);
-                // SPDLOG_ERROR("Failed to exit b-CAP slave mode." + err_description);
+                SPDLOG_ERROR("Failed to exit b-CAP slave mode.");
                 return {
                     ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED,
                     trajectory_result

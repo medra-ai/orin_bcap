@@ -195,7 +195,8 @@ public:
         SUCCESS,
         ENTER_SLAVE_MODE_FAILED,
         SLAVE_MOVE_FAILED,
-        EXIT_SLAVE_MODE_FAILED
+        EXIT_SLAVE_MODE_FAILED,
+        FORCE_SENSOR_RESET_FAILED
     };
     enum class ExecuteServoTrajectoryResult {
         COMPLETE,
