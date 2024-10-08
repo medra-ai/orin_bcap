@@ -867,7 +867,12 @@ namespace denso_controller
         {
             return CommandServoJointResult::SUCCESS;
         }
-        SPDLOG_ERROR("Failed to command servo joint.");
+        SPDLOG_ERROR("Failed to command servo joint. Resetting robot.");
+
+        write_driver.ClearError();
+        write_driver.ManualReset();
+        SPDLOG_INFO("Cleared errors after failed servo command.");
+
         return CommandServoJointResult::SLAVE_MOVE_FAILED;
     }
 
