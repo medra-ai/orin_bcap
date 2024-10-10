@@ -190,6 +190,19 @@ public:
     // Returns a tuple containing the error code and the joint positions in
     // radians.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
+
+    enum class ExecuteServoTrajectoryError {
+        SUCCESS,
+        ENTER_SLAVE_MODE_FAILED,
+        SLAVE_MOVE_FAILED,
+        EXIT_SLAVE_MODE_FAILED,
+        FORCE_SENSOR_RESET_FAILED
+    };
+    enum class ExecuteServoTrajectoryResult {
+        COMPLETE,
+        FORCE_LIMIT_EXCEEDED,
+        ERROR
+    };
     // Executes a trajectory of joint angles in radians.
     // total_force_limit, total_torque_limit, and per_axis_force_torque_limits
     // describe stopping criteria for trajectory execution based on force
@@ -199,14 +212,15 @@ public:
     //   2. If the total torque exceeds total_torque_limit Nm, or
     //   3. If the force or torque on any axis exceeds the corresponding limit
     //     in per_axis_force_torque_limits.
-    // The return value is true if the trajectory fully executed, and false if
-    // it was stopped early.
-    bool ExecuteServoTrajectory(
+    // Returns an error code and a result for whether execution finished.
+    std::tuple<ExecuteServoTrajectoryError, ExecuteServoTrajectoryResult>
+    ExecuteServoTrajectory(
         const RobotTrajectory& traj,
         const std::optional<double> total_force_limit = std::nullopt,
         const std::optional<double> total_torque_limit = std::nullopt,
         const std::optional<std::vector<double>> per_axis_force_torque_limits = std::nullopt
     );
+
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
 
@@ -235,9 +249,30 @@ private:
         const std::optional<std::vector<double>> per_axis_force_torque_limits
     );
 
+    enum class EnterSlaveModeResult {
+        SUCCESS, ENTER_SLAVE_MODE_FAILED
+    };
+    EnterSlaveModeResult EnterSlaveMode();
+
+    enum class ExitSlaveModeResult {
+        SUCCESS, EXIT_SLAVE_MODE_FAILED
+    };
+    ExitSlaveModeResult ExitSlaveMode();
+
+    enum class CommandServoJointResult {
+        SUCCESS, SLAVE_MOVE_FAILED
+    };
+    // Commands the robot to move to a joint position, in radians, in slave mode.
+    CommandServoJointResult CommandServoJoint(const std::vector<double>& waypoint);
+
+    enum class ClosedLoopCommandServoJointResult {
+        SUCCESS,
+        GET_CUR_JNT_FAILED,
+        SLAVE_MOVE_FAILED
+    };
     // Repeatedly commands a joint position in slave mode until the robot's
     // current joint position is within a small tolerance of it.
-    void ClosedLoopCommandServoJoint(const std::vector<double>& waypoint);
+    ClosedLoopCommandServoJointResult ClosedLoopCommandServoJoint(const std::vector<double>& waypoint);
 
     // Error handling
     void HandleError(BCAP_HRESULT error_code, const char* error_description);

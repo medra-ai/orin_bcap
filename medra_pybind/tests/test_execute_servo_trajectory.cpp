@@ -16,13 +16,7 @@
 #define AMPLITUDE  1
 
 int main(){
-    int iSockFD;
-    uint32_t lResult;
-    uint32_t lhController, lhRobot;
     BCAP_HRESULT hr = BCAP_S_OK;
-
-    double dJnt[8];
-    BCAP_VARIANT vntPose, vntReturn;
 
     denso_controller::DensoController controller;
     controller.Start();
@@ -66,32 +60,41 @@ int main(){
         currentPose = newPose;
     }
 
-    const size_t dimension = 6;
     RobotTrajectory forward_trajectory;
     forward_trajectory.trajectory = forward_trajectory_poses;
     RobotTrajectory reverse_trajectory;
     reverse_trajectory.trajectory = reverse_trajectory_poses;
 
-
     // Execute the trajectory
     for (size_t iters = 0; iters < 100000; ++iters) {
         // std::optional<std::vector<double>> force_vector = std::vector<double>{10000.0, 10000.0, 10.0, 10000.0, 10000.0, 10000.0};
         auto total_force_limit = 10.0;
-        if (!controller.ExecuteServoTrajectory(
+        auto result = controller.ExecuteServoTrajectory(
             forward_trajectory,
             total_force_limit,
             std::nullopt,
             std::nullopt
-        )) {
+        );
+        if (std::get<0>(result) != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
+            std::cout << "Error executing forward trajectory" << std::endl;
+            break;
+        }
+        if (std::get<1>(result) == denso_controller::DensoController::ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED) {
             std::cout << "Stopped early" << std::endl;
             break;
         }
-        if (!controller.ExecuteServoTrajectory(
+
+        result = controller.ExecuteServoTrajectory(
             reverse_trajectory,
             total_force_limit,
             std::nullopt,
             std::nullopt
-        )) {
+        );
+        if (std::get<0>(result) != denso_controller::DensoController::ExecuteServoTrajectoryError::SUCCESS) {
+            std::cout << "Error executing reverse trajectory" << std::endl;
+            break;
+        }
+        if (std::get<1>(result) == denso_controller::DensoController::ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED) {
             std::cout << "Stopped early" << std::endl;
             break;
         }

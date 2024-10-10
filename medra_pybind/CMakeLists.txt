@@ -7,6 +7,16 @@ message ("CMake Compiler: " ${CMAKE_CXX_COMPILER})
 message ("CMake Compiler ID: " ${CMAKE_CXX_COMPILER_ID})
 message ("CMake Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 
+# Compiler flags
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  message(FATAL_ERROR "MSVC compiler is not supported.")
+endif()
+
+message("Using GNU or Clang compiler")
+add_compile_options(-Wswitch -Wswitch-enum)  # Checks that all switch cases are covered
+add_compile_options(-Wall)  # Enable all warnings
+add_compile_options(-Wextra)  # Enable extra warnings
+
 # Set the names and sources of the module
 set(MODULE_NAME medra_bcap)
 set(PYBIND11_SOURCES 
