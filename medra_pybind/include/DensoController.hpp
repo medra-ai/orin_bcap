@@ -183,6 +183,8 @@ public:
     void Stop();
 
     // Error handling
+    BCAP_HRESULT Motor(bool command);
+    BCAP_HRESULT ManualReset();
     BCAP_HRESULT ClearError();
     std::string GetErrorDescription(BCAP_HRESULT error_code);
 

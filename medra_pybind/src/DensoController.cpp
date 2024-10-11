@@ -441,6 +441,16 @@ namespace denso_controller
         write_driver.Stop();
     }
 
+    BCAP_HRESULT DensoController::Motor(bool command)
+    {
+        return write_driver.Motor(command);
+    }
+
+    BCAP_HRESULT DensoController::ManualReset()
+    {
+        return write_driver.ManualReset();
+    }
+
     BCAP_HRESULT DensoController::ClearError()
     {
         return write_driver.ClearError();

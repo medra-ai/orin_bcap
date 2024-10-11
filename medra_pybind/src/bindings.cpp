@@ -46,6 +46,10 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("Stop", &DensoController::Stop, py::call_guard<py::gil_scoped_release>())
 
     // Error handling functions
+    .def("Motor", &DensoController::Motor, py::call_guard<py::gil_scoped_release>(),
+          py::arg("command")
+    )
+    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>())
     .def("ClearError", &DensoController::ClearError, py::call_guard<py::gil_scoped_release>())
     .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>(),
           py::arg("error_code")
