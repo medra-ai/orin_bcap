@@ -509,6 +509,8 @@ namespace denso_controller
             }
         }
 
+        atomic_stop_trajectory_execution = false;
+
         // Start a thread to stream force sensor data
         atomic_force_limit_exceeded = false;
         std::thread force_sensing_thread(
