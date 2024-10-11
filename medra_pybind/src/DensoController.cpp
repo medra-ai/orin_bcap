@@ -396,6 +396,7 @@ namespace denso_controller
                                          write_driver(DensoReadWriteDriver())
     {
         current_waypoint_index = 0;
+        atomic_stop_trajectory_execution = false;
     }
 
     void DensoController::Start()
@@ -434,7 +435,7 @@ namespace denso_controller
 
     void DensoController::Stop()
     {
-        force_limit_exceeded = true;
+        atomic_force_limit_exceeded = true;
 
         read_driver.Stop();
         write_driver.Stop();
@@ -475,6 +476,11 @@ namespace denso_controller
         return {hr, joint_positions};
     }
 
+    void DensoController::StopTrajectoryExecution()
+    {
+        atomic_stop_trajectory_execution = true;
+    }
+
     std::tuple<DensoController::ExecuteServoTrajectoryError, DensoController::ExecuteServoTrajectoryResult>
     DensoController::ExecuteServoTrajectory(
         const RobotTrajectory &traj,
@@ -504,7 +510,7 @@ namespace denso_controller
         }
 
         // Start a thread to stream force sensor data
-        force_limit_exceeded = false;
+        atomic_force_limit_exceeded = false;
         std::thread force_sensing_thread(
             &DensoController::RunForceSensingLoop,
             this,
@@ -531,26 +537,35 @@ namespace denso_controller
         // Execute the trajectory
         // BCAP_VARIANT vntPose, vntReturn;
         CommandServoJointResult result;
+        bool force_limit_exceeded = false;
+        bool trajectory_stopped_early = false;
         for (size_t i = 0; i < traj.size(); i++)
         {
             current_waypoint_index = i;
             // Stop if the force exceedance condition is true
-            if (current_waypoint_index > 4 && force_limit_exceeded)
+            if (current_waypoint_index > 4 && atomic_force_limit_exceeded)
             {
                 SPDLOG_INFO("Force limit exceeded after "
                             + std::to_string(current_waypoint_index)
                             + " of " + std::to_string(traj.size())
                             + " waypoints. Stopping trajectory execution.");
+                force_limit_exceeded = true;
+                break;
+            }
+            if (current_waypoint_index > 4 && atomic_stop_trajectory_execution)
+            {
+                SPDLOG_INFO("Trajectory execution has been disabled at waypoint index "
+                            + std::to_string(current_waypoint_index) + " of "
+                            + std::to_string(traj.size())
+                            + ". Stopping trajectory execution early.");
+                trajectory_stopped_early = true;
+                // Reset the state of the atomic variable so that the next
+                // trajectory execution can proceed.
+                atomic_stop_trajectory_execution = false;
                 break;
             }
 
             const auto &joint_position = traj.trajectory[i];
-            // vntPose = VNTFromRadVector(joint_position);
-            // if (i == 0) {
-            //     auto time_of_first_move = std::chrono::steady_clock::now();
-            //     auto elapsed = time_of_first_move - slave_mode_on;
-            //     SPDLOG_INFO("Time to first move: " + std::to_string(elapsed.count()));
-            // }
             result = CommandServoJoint(joint_position);
             switch (result)
             {
@@ -564,7 +579,7 @@ namespace denso_controller
                     );
 
                     // Stop the force sensing thread to prevent it from running indefinitely.
-                    force_limit_exceeded = true;
+                    atomic_force_limit_exceeded = true;
                     force_sensing_thread.join();
 
                     // No need to exit slave mode here because the controller
@@ -574,20 +589,13 @@ namespace denso_controller
                         ExecuteServoTrajectoryResult::ERROR
                     };
             }
-
-            // Print the joint positions
-            // std::string msg = "slvmove (";
-            // for (int i=0; i<joint_position.size(); ++i)
-            //     msg += std::to_string(joint_position[i]) + ' ';
-            // msg += ")";
-            // SPDLOG_INFO(msg);
         }
 
-        bool exec_complete = !force_limit_exceeded;
+        bool exec_complete = !force_limit_exceeded && !trajectory_stopped_early;
         // Stop the force sensing thread by triggering the stop condition.
         // Don't join the force sensing thread here because it may block this
         // thread for too long, causing command position buffer underflow.
-        force_limit_exceeded = true;
+        atomic_force_limit_exceeded = true;
 
         // Close loop servo commands on last waypoint.
         if (exec_complete)
@@ -602,17 +610,20 @@ namespace denso_controller
                     // The trajectory is essentially complete at this point, so we
                     // don't do anything special if the closed loop commands fail.
                     SPDLOG_ERROR("Closed loop servo joint commands failed");
-                    ClearError();
+                    ClearError();  // NOTE(charles): I don't think we need to clear here.
                     break;
             }
         }
         force_sensing_thread.join();
 
-        ExecuteServoTrajectoryResult trajectory_result = (
-            exec_complete ?
-            ExecuteServoTrajectoryResult::COMPLETE :
-            ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED
-        );
+        ExecuteServoTrajectoryResult trajectory_result;
+        if (exec_complete) {
+            trajectory_result = ExecuteServoTrajectoryResult::COMPLETE;
+        } else if (force_limit_exceeded) {
+            trajectory_result = ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED;
+        } else {  // trajectory_stopped_early
+            trajectory_result = ExecuteServoTrajectoryResult::EARLY_STOP_REQUESTED;
+        }
 
         SPDLOG_INFO("Turning off slave mode");
         switch (ExitSlaveMode())
@@ -663,7 +674,7 @@ namespace denso_controller
 
         BCAP_HRESULT hr;
         std::vector<double> force_values;
-        while (!force_limit_exceeded)
+        while (!atomic_force_limit_exceeded)
         {
             auto start = std::chrono::steady_clock::now();
 
@@ -698,7 +709,7 @@ namespace denso_controller
             {
                 SPDLOG_INFO("Force limit exceeded. Total force: " + std::to_string(total_force)
                             + ". Force limit: " + std::to_string(*total_force_limit));
-                force_limit_exceeded = true;
+                atomic_force_limit_exceeded = true;
                 break;
             }
 
@@ -709,7 +720,7 @@ namespace denso_controller
             {
                 SPDLOG_INFO("Torque limit exceeded. Total torque: " + std::to_string(total_torque)
                             + ". Torque limit: " + std::to_string(*total_torque_limit));
-                force_limit_exceeded = true;
+                atomic_force_limit_exceeded = true;
                 break;
             }
 
@@ -721,7 +732,7 @@ namespace denso_controller
                     if (std::abs(force_values[i]) > (*per_axis_force_torque_limits)[i])
                     {
                         SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(force_values[i]));
-                        force_limit_exceeded = true;
+                        atomic_force_limit_exceeded = true;
                         break;
                     }
                 }

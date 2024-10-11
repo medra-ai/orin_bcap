@@ -201,7 +201,8 @@ public:
     enum class ExecuteServoTrajectoryResult {
         COMPLETE,
         FORCE_LIMIT_EXCEEDED,
-        ERROR
+        ERROR,
+        EARLY_STOP_REQUESTED
     };
     // Executes a trajectory of joint angles in radians.
     // total_force_limit, total_torque_limit, and per_axis_force_torque_limits
@@ -226,18 +227,25 @@ public:
 
     int current_waypoint_index;
 
+    // Disable/enable trajectory execution.
+    void StopTrajectoryExecution();
+
 private:
     // Denso b-CAP drivers, one for read-only operations and one for read-write
     // operations.
     DensoReadDriver read_driver;
     DensoReadWriteDriver write_driver;
 
+    // Used to request early termination of trajectory execution via
+    // StopTrajectoryExecution().
+    std::atomic<bool> atomic_stop_trajectory_execution;
+
     // The purpose of this variable is two-fold:
     //   1. The RunForceSensingLoop function only runs while this variable is
     //      false.
     //   2. The RunForceSensingLoop function sets this variable to true if the
     //      force limit is exceeded.
-    std::atomic<bool> force_limit_exceeded;
+    std::atomic<bool> atomic_force_limit_exceeded;
 
     // Runs force sensing loop with the read-only Denso driver. Should be used
     // in a separate thread.
