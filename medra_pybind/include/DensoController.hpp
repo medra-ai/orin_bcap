@@ -228,6 +228,7 @@ public:
     int current_waypoint_index;
 
     // Disable/enable trajectory execution.
+    void ClearTrajectoryExecution();
     void StopTrajectoryExecution();
 
 private:

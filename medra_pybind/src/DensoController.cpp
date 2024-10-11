@@ -476,6 +476,11 @@ namespace denso_controller
         return {hr, joint_positions};
     }
 
+    void DensoController::ClearTrajectoryExecution()
+    {
+        atomic_stop_trajectory_execution = false;
+    }
+
     void DensoController::StopTrajectoryExecution()
     {
         atomic_stop_trajectory_execution = true;
@@ -508,8 +513,6 @@ namespace denso_controller
                 };
             }
         }
-
-        atomic_stop_trajectory_execution = false;
 
         // Start a thread to stream force sensor data
         atomic_force_limit_exceeded = false;
