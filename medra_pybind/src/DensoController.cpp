@@ -574,6 +574,7 @@ namespace denso_controller
                             + std::to_string(traj.size())
                             + ". Stopping trajectory execution early.");
                 trajectory_stopped_early = true;
+                SetTrajectoryExecutionEnabled(true);  // Reset the flag for the next trajectory.
                 break;
             }
 
