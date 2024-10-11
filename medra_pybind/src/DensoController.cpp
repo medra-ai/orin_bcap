@@ -521,6 +521,7 @@ namespace denso_controller
                 break;
             case EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED:
                 SPDLOG_ERROR("Failed to enter b-CAP slave mode.");  // + err_description);
+                force_sensing_thread.join();
                 return {
                     ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED,
                     ExecuteServoTrajectoryResult::ERROR
