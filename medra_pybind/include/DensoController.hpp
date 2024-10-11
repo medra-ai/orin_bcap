@@ -230,8 +230,8 @@ public:
     int current_waypoint_index;
 
     // Disable/enable trajectory execution.
-    void ClearTrajectoryExecution();
-    void StopTrajectoryExecution();
+    bool GetStopTrajectoryExecutionStatus();
+    void StopTrajectoryExecution(bool stop);
 
 private:
     // Denso b-CAP drivers, one for read-only operations and one for read-write

@@ -486,14 +486,14 @@ namespace denso_controller
         return {hr, joint_positions};
     }
 
-    void DensoController::ClearTrajectoryExecution()
+    bool DensoController::GetStopTrajectoryExecutionStatus()
     {
-        atomic_stop_trajectory_execution = false;
+        return atomic_stop_trajectory_execution;
     }
 
-    void DensoController::StopTrajectoryExecution()
+    void DensoController::StopTrajectoryExecution(bool stop)
     {
-        atomic_stop_trajectory_execution = true;
+        atomic_stop_trajectory_execution = stop;
     }
 
     std::tuple<DensoController::ExecuteServoTrajectoryError, DensoController::ExecuteServoTrajectoryResult>
@@ -574,9 +574,6 @@ namespace denso_controller
                             + std::to_string(traj.size())
                             + ". Stopping trajectory execution early.");
                 trajectory_stopped_early = true;
-                // Reset the state of the atomic variable so that the next
-                // trajectory execution can proceed.
-                atomic_stop_trajectory_execution = false;
                 break;
             }
 

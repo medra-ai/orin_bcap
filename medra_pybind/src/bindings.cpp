@@ -59,7 +59,7 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>(),
           py::arg("traj"), py::arg("total_force_limit"), py::arg("total_torque_limit"), py::arg("per_axis_force_torque_limits")
     )
-    .def("ClearTrajectoryExecution", &DensoController::ClearTrajectoryExecution, py::call_guard<py::gil_scoped_release>())
+    .def("GetStopTrajectoryExecutionStatus", &DensoController::GetStopTrajectoryExecutionStatus, py::call_guard<py::gil_scoped_release>())
     .def("StopTrajectoryExecution", &DensoController::StopTrajectoryExecution, py::call_guard<py::gil_scoped_release>())
     .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>(),
           py::arg("tool_value")
