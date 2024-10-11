@@ -230,8 +230,8 @@ public:
     int current_waypoint_index;
 
     // Disable/enable trajectory execution.
-    bool GetStopTrajectoryExecutionStatus();
-    void StopTrajectoryExecution(bool stop);
+    bool GetTrajectoryExecutionEnabled();
+    void SetTrajectoryExecutionEnabled(bool enabled);
 
 private:
     // Denso b-CAP drivers, one for read-only operations and one for read-write
@@ -241,7 +241,7 @@ private:
 
     // Used to request early termination of trajectory execution via
     // StopTrajectoryExecution().
-    std::atomic<bool> atomic_stop_trajectory_execution;
+    std::atomic<bool> atomic_trajectory_execution_enabled;
 
     // The purpose of this variable is two-fold:
     //   1. The RunForceSensingLoop function only runs while this variable is

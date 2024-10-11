@@ -396,7 +396,7 @@ namespace denso_controller
                                          write_driver(DensoReadWriteDriver())
     {
         current_waypoint_index = 0;
-        atomic_stop_trajectory_execution = false;
+        atomic_trajectory_execution_enabled = true;
     }
 
     void DensoController::Start()
@@ -486,14 +486,14 @@ namespace denso_controller
         return {hr, joint_positions};
     }
 
-    bool DensoController::GetStopTrajectoryExecutionStatus()
+    bool DensoController::GetTrajectoryExecutionEnabled()
     {
-        return atomic_stop_trajectory_execution;
+        return atomic_trajectory_execution_enabled;
     }
 
-    void DensoController::StopTrajectoryExecution(bool stop)
+    void DensoController::SetTrajectoryExecutionEnabled(bool enabled)
     {
-        atomic_stop_trajectory_execution = stop;
+        atomic_trajectory_execution_enabled = enabled;
     }
 
     std::tuple<DensoController::ExecuteServoTrajectoryError, DensoController::ExecuteServoTrajectoryResult>
@@ -567,7 +567,7 @@ namespace denso_controller
                 force_limit_exceeded = true;
                 break;
             }
-            if (current_waypoint_index > 4 && atomic_stop_trajectory_execution)
+            if (current_waypoint_index > 4 && !atomic_trajectory_execution_enabled)
             {
                 SPDLOG_INFO("Trajectory execution has been disabled at waypoint index "
                             + std::to_string(current_waypoint_index) + " of "
