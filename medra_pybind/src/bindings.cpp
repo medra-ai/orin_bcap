@@ -46,6 +46,10 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("Stop", &DensoController::Stop, py::call_guard<py::gil_scoped_release>())
 
     // Error handling functions
+    .def("Motor", &DensoController::Motor, py::call_guard<py::gil_scoped_release>(),
+          py::arg("command")
+    )
+    .def("ManualReset", &DensoController::ManualReset, py::call_guard<py::gil_scoped_release>())
     .def("ClearError", &DensoController::ClearError, py::call_guard<py::gil_scoped_release>())
     .def("GetErrorDescription", &DensoController::GetErrorDescription, py::call_guard<py::gil_scoped_release>(),
           py::arg("error_code")
@@ -55,6 +59,8 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>(),
           py::arg("traj"), py::arg("total_force_limit"), py::arg("total_torque_limit"), py::arg("per_axis_force_torque_limits")
     )
+    .def("GetTrajectoryExecutionEnabled", &DensoController::GetTrajectoryExecutionEnabled, py::call_guard<py::gil_scoped_release>())
+    .def("SetTrajectoryExecutionEnabled", &DensoController::SetTrajectoryExecutionEnabled, py::call_guard<py::gil_scoped_release>())
     .def("SetTcpLoad", &DensoController::SetTcpLoad, py::call_guard<py::gil_scoped_release>(),
           py::arg("tool_value")
     )
