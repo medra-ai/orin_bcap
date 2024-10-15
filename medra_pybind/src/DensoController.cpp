@@ -357,12 +357,7 @@ namespace denso_controller
     BCAP_HRESULT DensoReadWriteDriver::SlvChangeMode(const char *mode)
     {
         long lResult;
-        BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "slvChangeMode", mode, &lResult);
-        if FAILED (hr)
-        {
-            throw bCapException("\033[1;31mbCap_SlvChangeMode failed.\033[0m");
-        }
-        return hr;
+        return bCap_RobotExecute(iSockFD, lhRobot, "slvChangeMode", mode, &lResult);
     }
 
     BCAP_HRESULT DensoReadWriteDriver::SlvMove(BCAP_VARIANT *pose, BCAP_VARIANT *result)
@@ -542,6 +537,7 @@ namespace denso_controller
                 break;
             case EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED:
                 SPDLOG_ERROR("Failed to enter b-CAP slave mode.");  // + err_description);
+                atomic_force_limit_exceeded = true;
                 force_sensing_thread.join();
                 return {
                     ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED,
