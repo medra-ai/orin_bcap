@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <pybind11/chrono.h>
 
 #include "logging.hpp"
 #include "DensoController.hpp"
@@ -13,6 +14,12 @@ namespace py = pybind11;
 using namespace denso_controller;
 
 PYBIND11_MODULE(_medra_bcap, m) {
+  py::class_<TrajectoryExecutionResult>(m, "TrajectoryExecutionResult")
+    .def_readonly("error_code", &TrajectoryExecutionResult::error_code)
+    .def_readonly("result_code", &TrajectoryExecutionResult::result_code)
+    .def_readonly("joint_positions", &TrajectoryExecutionResult::joint_positions)
+    .def_readonly("force_torque_values", &TrajectoryExecutionResult::force_torque_values);
+
   py::class_<RobotTrajectory>(m, "RobotTrajectory")
     .def(py::init<>())
     .def_readonly("dimension", &RobotTrajectory::dimension)
@@ -24,16 +31,16 @@ PYBIND11_MODULE(_medra_bcap, m) {
   py::register_exception<EnterSlaveModeException>(m, "EnterSlaveModeException");
   py::register_exception<ExitSlaveModeException>(m, "ExitSlaveModeException");
 
-  py::enum_<DensoController::ExecuteServoTrajectoryError>(m, "ExecuteServoTrajectoryError")
-    .value("SUCCESS", DensoController::ExecuteServoTrajectoryError::SUCCESS)
-    .value("ENTER_SLAVE_MODE_FAILED", DensoController::ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED)
-    .value("SLAVE_MOVE_FAILED", DensoController::ExecuteServoTrajectoryError::SLAVE_MOVE_FAILED)
-    .value("EXIT_SLAVE_MODE_FAILED", DensoController::ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED);
+  py::enum_<ExecuteServoTrajectoryError>(m, "ExecuteServoTrajectoryError")
+    .value("SUCCESS", ExecuteServoTrajectoryError::SUCCESS)
+    .value("ENTER_SLAVE_MODE_FAILED", ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED)
+    .value("SLAVE_MOVE_FAILED", ExecuteServoTrajectoryError::SLAVE_MOVE_FAILED)
+    .value("EXIT_SLAVE_MODE_FAILED", ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED);
   
-  py::enum_<DensoController::ExecuteServoTrajectoryResult>(m, "ExecuteServoTrajectoryResult")
-    .value("COMPLETE", DensoController::ExecuteServoTrajectoryResult::COMPLETE)
-    .value("FORCE_LIMIT_EXCEEDED", DensoController::ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED)
-    .value("ERROR", DensoController::ExecuteServoTrajectoryResult::ERROR);
+  py::enum_<ExecuteServoTrajectoryResult>(m, "ExecuteServoTrajectoryResult")
+    .value("COMPLETE", ExecuteServoTrajectoryResult::COMPLETE)
+    .value("FORCE_LIMIT_EXCEEDED", ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED)
+    .value("ERROR", ExecuteServoTrajectoryResult::ERROR);
 
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<>())
