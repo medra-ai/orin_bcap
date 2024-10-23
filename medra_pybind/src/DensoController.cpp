@@ -201,7 +201,6 @@ namespace denso_controller
                 break;
             }
             SPDLOG_WARN("Failed to get force value, attempt " + std::to_string(attempt));
-            ClearError();
         }
         if (FAILED(hr))
         {
@@ -921,6 +920,7 @@ namespace denso_controller
         }
         SPDLOG_ERROR("Failed to command servo joint. Resetting robot.");
 
+        write_driver.SlvChangeMode(SERVO_MODE_OFF);
         write_driver.ClearError();
         write_driver.ManualReset();
         SPDLOG_INFO("Cleared errors after failed servo command.");
