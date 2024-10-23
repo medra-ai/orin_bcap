@@ -219,7 +219,7 @@ namespace denso_controller
     std::tuple<BCAP_HRESULT, std::vector<double>>
     DensoReadDriver::GetMountingCalib(const char *work_coordinate)
     {
-        double work_def[8]; // Should this be 6?
+        double work_def[8];
         std::vector<double> mounting_calib = std::vector<double>(8);
 
         BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
@@ -494,7 +494,7 @@ namespace denso_controller
         const RobotTrajectory &traj,
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits)
+        const std::optional<ForceTorque> per_axis_force_torque_limits)
     {
         auto arm_mutex = DensoArmMutex(write_driver);
 
@@ -692,7 +692,7 @@ namespace denso_controller
     void DensoController::RunForceSensingLoop(
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits,
+        const std::optional<ForceTorque> per_axis_force_torque_limits,
         TimestampedForceSequence& force_torque_sequence
     )
     {
@@ -763,7 +763,7 @@ namespace denso_controller
             // Check the TCP force/torque does not exceed the limit
             if (per_axis_force_torque_limits.has_value())
             {
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < per_axis_force_torque_limits->size(); i++)
                 {
                     if (std::abs(ft_values[i]) > (*per_axis_force_torque_limits)[i])
                     {

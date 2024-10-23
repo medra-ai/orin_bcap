@@ -252,7 +252,7 @@ public:
         const RobotTrajectory& traj,
         const std::optional<double> total_force_limit = std::nullopt,
         const std::optional<double> total_torque_limit = std::nullopt,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits = std::nullopt
+        const std::optional<ForceTorque> per_axis_force_torque_limits = std::nullopt
     );
 
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
@@ -290,7 +290,7 @@ private:
     void RunForceSensingLoop(
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits,
+        const std::optional<ForceTorque> per_axis_force_torque_limits,
         TimestampedForceSequence& force_torque_values
     );
 
