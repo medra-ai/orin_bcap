@@ -30,12 +30,14 @@ namespace denso_controller
 
     DensoArmMutex::DensoArmMutex(DensoReadWriteDriver &driver) : driver(driver)
     {
+        SPDLOG_DEBUG("Executing TakeArm()");
         driver.TakeArm();
         driver.Motor(true);
     }
 
     DensoArmMutex::~DensoArmMutex()
     {
+        SPDLOG_DEBUG("Executing GiveArm()");
         driver.GiveArm();
     }
 
@@ -156,6 +158,7 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadDriver::ClearError()
     {
+        SPDLOG_DEBUG("Executing ClearError()");
         long lResult;
         BCAP_HRESULT hr = bCap_ControllerExecute(
             iSockFD, lhController, "ClearError", "", &lResult);
@@ -168,6 +171,7 @@ namespace denso_controller
         BCAP_HRESULT hr;
         for (size_t attempt = 0; attempt < 3; ++attempt)
         {
+            SPDLOG_DEBUG("Executing CurJnt()");
             hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
             if (SUCCEEDED(hr))
             {
@@ -195,6 +199,7 @@ namespace denso_controller
         BCAP_HRESULT hr;
         for (size_t attempt = 0; attempt < 3; ++attempt)
         {
+            SPDLOG_DEBUG("Executing forceValue(13)");
             hr = bCap_RobotExecute(iSockFD, lhRobot, "forceValue", "13", &dForce);
             if SUCCEEDED (hr)
             {
@@ -221,6 +226,7 @@ namespace denso_controller
         double work_def[8];
         std::vector<double> mounting_calib = std::vector<double>(8);
 
+        SPDLOG_DEBUG("Executing getWorkDef()");
         BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "getWorkDef", work_coordinate, &work_def);
         if FAILED (hr)
         {
@@ -271,6 +277,7 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadWriteDriver::ManualReset()
     {
+        SPDLOG_DEBUG("Executing ManualReset()");
         long lResult;
         BCAP_HRESULT hr = bCap_ControllerExecute(
             iSockFD, lhController, "ManualReset", "", &lResult);
@@ -287,10 +294,12 @@ namespace denso_controller
         long lResult;
         if (command)
         {
+            SPDLOG_DEBUG("Executing Motor(1)");
             hr = bCap_RobotExecute(iSockFD, lhRobot, "Motor", "1", &lResult);
         }
         else
         {
+            SPDLOG_DEBUG("Executing Motor(0)");
             hr = bCap_RobotExecute(iSockFD, lhRobot, "Motor", "0", &lResult);
         }
         return hr;
@@ -298,18 +307,21 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadWriteDriver::TakeArm()
     {
+        SPDLOG_DEBUG("Executing TakeArm()");
         long lResult;
         return bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", &lResult);
     }
 
     BCAP_HRESULT DensoReadWriteDriver::GiveArm()
     {
+        SPDLOG_DEBUG("Executing GiveArm()");
         long lResult;
         return bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
     }
 
     BCAP_HRESULT DensoReadWriteDriver::SetExtSpeed(const char *speed)
     {
+        SPDLOG_DEBUG("Executing SetExtSpeed()");
         long lResult;
         BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "ExtSpeed", speed, &lResult);
         if SUCCEEDED (hr)
@@ -353,12 +365,14 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadWriteDriver::SlvChangeMode(const char *mode)
     {
+        SPDLOG_DEBUG("Executing SlvChangeMode(" + std::string(mode) + ")");
         long lResult;
         return bCap_RobotExecute(iSockFD, lhRobot, "slvChangeMode", mode, &lResult);
     }
 
     BCAP_HRESULT DensoReadWriteDriver::SlvMove(BCAP_VARIANT *pose, BCAP_VARIANT *result)
     {
+        SPDLOG_DEBUG("Executing SlvMove()");
         return bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
     }
 
@@ -368,6 +382,7 @@ namespace denso_controller
         BCAP_HRESULT hr;
         for (size_t attempt = 0; attempt < 3; ++attempt)
         {
+            SPDLOG_DEBUG("Executing ForceSensor(" + std::string(mode) + ")");
             hr = bCap_RobotExecute(iSockFD, lhRobot, "ForceSensor", mode, &lResult);
             if (SUCCEEDED(hr))
             {
@@ -389,6 +404,8 @@ namespace denso_controller
     {
         current_waypoint_index = 0;
         atomic_trajectory_execution_enabled = true;
+
+        spdlog::set_level(spdlog::level::debug);
     }
 
     void DensoController::Start()
