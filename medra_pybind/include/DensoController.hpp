@@ -7,7 +7,6 @@
 #define DensoController_hpp
 
 #include "b-Cap.h"
-#include "util.hpp"
 #include <exception>
 #include <string>
 #include <cassert>
@@ -15,6 +14,7 @@
 #include <tuple>
 #include <atomic>
 #include <optional>
+#include <chrono>
 
 #define DEFAULT_SERVER_IP_ADDRESS    "192.168.0.1"
 #define DEFAULT_SERVER_PORT_NUM      5007
@@ -29,7 +29,53 @@
 #define SERVO_MODE_ON "514"  // Mode 2 J-type
 #define SERVO_MODE_OFF "0"   // Servo mode off
 
+const size_t JOINT_DOF = 6;
+const size_t FORCE_TORQUE_DOF = 6;
+const size_t SERVO_COMMAND_FREQUENCY_HZ = 100;
+const size_t FORCE_SENSING_FREQUENCY_HZ = 50;
+
 namespace denso_controller {
+
+// Joint position type without auxiliary axes
+using JointPosition = std::array<double, JOINT_DOF>;
+using ForceTorque = std::array<double, FORCE_TORQUE_DOF>;
+using RobotTrajectory = std::vector<JointPosition>;
+
+struct TimestampedWaypoint {
+    std::chrono::system_clock::time_point time;
+    JointPosition joint_position;
+};
+using TimestampedTrajectory = std::vector<TimestampedWaypoint>;
+
+struct TimestampedForceReading {
+    std::chrono::system_clock::time_point time;
+    ForceTorque force_torque_values;
+};
+using TimestampedForceSequence = std::vector<TimestampedForceReading>;
+
+enum class ExecuteServoTrajectoryError {
+    SUCCESS,
+    ENTER_SLAVE_MODE_FAILED,
+    SLAVE_MOVE_FAILED,
+    EXIT_SLAVE_MODE_FAILED,
+    FORCE_SENSOR_RESET_FAILED
+};
+enum class ExecuteServoTrajectoryResult {
+    COMPLETE,
+    FORCE_LIMIT_EXCEEDED,
+    ERROR,
+    EARLY_STOP_REQUESTED
+};
+
+// Log data for a single trajectory execution.
+struct TrajectoryExecutionResult {
+    ExecuteServoTrajectoryError error_code;
+    ExecuteServoTrajectoryResult result_code;
+    // Log of times and joint positions for each waypoint in the trajectory.
+    TimestampedTrajectory joint_positions;
+    // Log of times and force/torque values for each waypoint in the trajectory.
+    TimestampedForceSequence force_torque_values;
+};
 
 class bCapException : public std::exception {
 public:
@@ -107,12 +153,12 @@ public:
     // The first 6 values are the joint angles in degrees, and the last 2
     // values are the positions of the auxiliary axes, or 0 if they are not
     // used.
-    BCAP_HRESULT GetCurJnt(std::vector<double>& joint_positions);
+    BCAP_HRESULT GetCurJnt(JointPosition& joint_positions);
     // Populates force_values with the current force values.
     // force_values is mutated into a vector of 6 doubles.
     // The first 3 values are the force values in Newtons, and the last 3
     // values are the torque values in Newton-meters.
-    BCAP_HRESULT GetForceValue(std::vector<double>& force_values);
+    BCAP_HRESULT GetForceValue(ForceTorque& force_values);
     // TODO: Change this function signature to match the Denso b-CAP API.
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
     std::string GetErrorDescription(BCAP_HRESULT error_code);
@@ -191,21 +237,8 @@ public:
     // High level commands
     // Returns a tuple containing the error code and the joint positions in
     // radians.
-    std::tuple<BCAP_HRESULT, std::vector<double>> GetJointPositions();
+    std::tuple<BCAP_HRESULT, JointPosition> GetJointPositions();
 
-    enum class ExecuteServoTrajectoryError {
-        SUCCESS,
-        ENTER_SLAVE_MODE_FAILED,
-        SLAVE_MOVE_FAILED,
-        EXIT_SLAVE_MODE_FAILED,
-        FORCE_SENSOR_RESET_FAILED
-    };
-    enum class ExecuteServoTrajectoryResult {
-        COMPLETE,
-        FORCE_LIMIT_EXCEEDED,
-        ERROR,
-        EARLY_STOP_REQUESTED
-    };
     // Executes a trajectory of joint angles in radians.
     // total_force_limit, total_torque_limit, and per_axis_force_torque_limits
     // describe stopping criteria for trajectory execution based on force
@@ -215,13 +248,11 @@ public:
     //   2. If the total torque exceeds total_torque_limit Nm, or
     //   3. If the force or torque on any axis exceeds the corresponding limit
     //     in per_axis_force_torque_limits.
-    // Returns an error code and a result for whether execution finished.
-    std::tuple<ExecuteServoTrajectoryError, ExecuteServoTrajectoryResult>
-    ExecuteServoTrajectory(
+    TrajectoryExecutionResult ExecuteServoTrajectory(
         const RobotTrajectory& traj,
         const std::optional<double> total_force_limit = std::nullopt,
         const std::optional<double> total_torque_limit = std::nullopt,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits = std::nullopt
+        const std::optional<ForceTorque> per_axis_force_torque_limits = std::nullopt
     );
 
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
@@ -254,10 +285,13 @@ private:
     // in a separate thread.
     // This function runs while force_limit_exceeded is false.
     // If the force limit is exceeded, force_limit_exceeded is set to true.
+    // This function populates force_torque_values with time-stamped
+    // force-torque readings.
     void RunForceSensingLoop(
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<std::vector<double>> per_axis_force_torque_limits
+        const std::optional<ForceTorque> per_axis_force_torque_limits,
+        TimestampedForceSequence& force_torque_values
     );
 
     enum class EnterSlaveModeResult {
@@ -274,7 +308,7 @@ private:
         SUCCESS, SLAVE_MOVE_FAILED
     };
     // Commands the robot to move to a joint position, in radians, in slave mode.
-    CommandServoJointResult CommandServoJoint(const std::vector<double>& waypoint);
+    CommandServoJointResult CommandServoJoint(const JointPosition& waypoint);
 
     enum class ClosedLoopCommandServoJointResult {
         SUCCESS,
@@ -283,23 +317,22 @@ private:
     };
     // Repeatedly commands a joint position in slave mode until the robot's
     // current joint position is within a small tolerance of it.
-    ClosedLoopCommandServoJointResult ClosedLoopCommandServoJoint(const std::vector<double>& waypoint);
+    ClosedLoopCommandServoJointResult ClosedLoopCommandServoJoint(const JointPosition& waypoint);
 
     // Error handling
     void HandleError(BCAP_HRESULT error_code, const char* error_description);
 
     // Utility functions
-    const char* CommandFromVector(std::vector<double> q);
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
     std::vector<double> RadVectorFromVNT(BCAP_VARIANT vnt0);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
-    BCAP_VARIANT VNTFromRadVector(std::vector<double> vect0);
+    BCAP_VARIANT VNTFromRadVector(const JointPosition &vect0);
 };
 
 
 ////////////////////////////// Utilities //////////////////////////////
-std::vector<double> VRad2Deg(std::vector<double> vect0);
-std::vector<double> VDeg2Rad(std::vector<double> vect0);
+JointPosition VRad2Deg(const JointPosition &vect0);
+JointPosition VDeg2Rad(const JointPosition &vect0);
 
 double Rad2Deg(double x);
 double Deg2Rad(double x);
