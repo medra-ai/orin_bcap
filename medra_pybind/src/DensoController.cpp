@@ -162,7 +162,7 @@ namespace denso_controller
         return hr;
     }
 
-    BCAP_HRESULT DensoReadDriver::GetCurJnt(std::vector<double> &joint_positions)
+    BCAP_HRESULT DensoReadDriver::GetCurJnt(JointPosition &joint_positions)
     {
         double dJnt[8];
         BCAP_HRESULT hr;
@@ -182,15 +182,14 @@ namespace denso_controller
             return hr;
         }
 
-        joint_positions.resize(0);
-        for (int i = 0; i < 8; i++)
+        for (size_t i = 0; i < joint_positions.size(); i++)
         {
-            joint_positions.push_back(dJnt[i]);
+            joint_positions[i] = dJnt[i];
         }
         return hr;
     }
 
-    BCAP_HRESULT DensoReadDriver::GetForceValue(std::vector<double> &force_values)
+    BCAP_HRESULT DensoReadDriver::GetForceValue(ForceTorque &force_values)
     {
         double dForce[8];
         BCAP_HRESULT hr;
@@ -210,10 +209,9 @@ namespace denso_controller
             return hr;
         }
 
-        force_values.resize(0);
-        for (int i = 0; i < 6; i++)
+        for (size_t i = 0; i < force_values.size(); ++i)
         {
-            force_values.push_back(dForce[i]);
+            force_values[i] = dForce[i];
         }
         return hr;
     }
@@ -467,10 +465,10 @@ namespace denso_controller
         return read_driver.GetMountingCalib(work_coordinate);
     }
 
-    std::tuple<BCAP_HRESULT, std::vector<double>>
+    std::tuple<BCAP_HRESULT, JointPosition>
     DensoController::GetJointPositions()
     {
-        std::vector<double> joint_positions;
+        JointPosition joint_positions;
         BCAP_HRESULT hr = read_driver.GetCurJnt(joint_positions);
 
         // Convert joint positions to radians
@@ -523,7 +521,19 @@ namespace denso_controller
 
         // Start a thread to stream force sensor data
         atomic_force_limit_exceeded = false;
-        TimestampedForceSequence force_torque_values;
+        // Pre-allocate memory for the force-torque values to avoid
+        // reallocation during real-time execution. In practice we should only
+        // need to store around
+        //   FORCE_SENSING_FREQUENCY_HZ / SERVO_COMMAND_FREQUENCY_HZ
+        // values, but allocate more to be safe.
+        const size_t FT_VECTOR_RESERVE_SIZE_FACTOR = 3;
+        const size_t total_ft_values = (
+            FT_VECTOR_RESERVE_SIZE_FACTOR
+            * traj.size()
+            * FORCE_SENSING_FREQUENCY_HZ
+            / SERVO_COMMAND_FREQUENCY_HZ
+        );
+        TimestampedForceSequence force_torque_values(total_ft_values);
         std::thread force_sensing_thread(
             &DensoController::RunForceSensingLoop,
             this,
@@ -556,7 +566,11 @@ namespace denso_controller
         CommandServoJointResult result;
         bool force_limit_exceeded = false;
         bool trajectory_stopped_early = false;
-        TimestampedTrajectory joint_positions;
+
+        // Reserve memory for the joint positions here to avoid
+        // potentially expensive reallocations during real-time execution.
+        TimestampedTrajectory joint_positions(traj.size());
+
         for (size_t i = 0; i < traj.size(); i++)
         {
             current_waypoint_index = i;
@@ -581,11 +595,11 @@ namespace denso_controller
                 break;
             }
 
-            const auto &joint_position = traj.trajectory[i];
+            const auto &joint_position = traj[i];
             result = CommandServoJoint(joint_position);
 
-            auto now = std::chrono::system_clock::now();
-            joint_positions.push_back({now, joint_position});
+            joint_positions[i].time = std::chrono::system_clock::now();
+            joint_positions[i].joint_position = joint_position;
 
             switch (result)
             {
@@ -601,6 +615,8 @@ namespace denso_controller
                     // Stop the force sensing thread to prevent it from running indefinitely.
                     atomic_force_limit_exceeded = true;
                     force_sensing_thread.join();
+
+                    joint_positions.resize(current_waypoint_index + 1);
 
                     // No need to exit slave mode here because the controller
                     // releases slave mode when an error occurs.
@@ -622,7 +638,7 @@ namespace denso_controller
         // Close loop servo commands on last waypoint.
         if (exec_complete)
         {
-            switch (ClosedLoopCommandServoJoint(traj.trajectory.back()))
+            switch (ClosedLoopCommandServoJoint(traj[current_waypoint_index - 1]))
             {
                 case ClosedLoopCommandServoJointResult::SUCCESS:
                     SPDLOG_INFO("Closed loop servo joint commands successful");
@@ -655,6 +671,7 @@ namespace denso_controller
                 break;
             case ExitSlaveModeResult::EXIT_SLAVE_MODE_FAILED:
                 SPDLOG_ERROR("Failed to exit b-CAP slave mode.");
+                joint_positions.resize(current_waypoint_index + 1);
                 return {
                     ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED,
                     trajectory_result,
@@ -663,6 +680,7 @@ namespace denso_controller
                 };
         }
 
+        joint_positions.resize(current_waypoint_index + 1);
         return {
             ExecuteServoTrajectoryError::SUCCESS,
             trajectory_result,
@@ -675,7 +693,7 @@ namespace denso_controller
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
         const std::optional<std::vector<double>> per_axis_force_torque_limits,
-        std::vector<std::tuple<std::chrono::system_clock::time_point, std::vector<double>>>& force_torque_values
+        TimestampedForceSequence& force_torque_sequence
     )
     {
         // Exit early if no force limits are specified
@@ -685,37 +703,44 @@ namespace denso_controller
             return;
         }
 
-        const int frequency = 50;           // Hz
-        const int period = 1000 / frequency; // period in milliseconds
-
+        const size_t total_ft_values = force_torque_sequence.size();
+        const int period = 1000 / FORCE_SENSING_FREQUENCY_HZ; // period in milliseconds
         const int filter_size = 3;
-        const int force_value_data_size = 6; // x, y, z, rx, ry, rz
-        filter::MeanFilter mean_filter(filter_size, force_value_data_size);
+        filter::MeanFilter<FORCE_TORQUE_DOF> mean_filter(filter_size);
 
         BCAP_HRESULT hr;
-        std::vector<double> force_values;
+        ForceTorque ft_values;
+        size_t ft_sequence_index = 0;
         while (!atomic_force_limit_exceeded)
         {
+            if (ft_sequence_index >= total_ft_values)
+            {
+                SPDLOG_ERROR("Force-torque value vector out of space. Size: "
+                                + std::to_string(total_ft_values));
+                break;
+            }
+
             auto start = std::chrono::steady_clock::now();
 
             // Check the force threshold
-            hr = read_driver.GetForceValue(force_values);
+            hr = read_driver.GetForceValue(ft_values);
             if (FAILED(hr))
             {
                 HandleError(hr, "GetForceValue failed.");
             }
-            mean_filter.AddValue(force_values);
+            mean_filter.AddValue(ft_values);
 
             // Use the mean of the last filter_size force values
-            force_values = mean_filter.GetMean();
+            ft_values = mean_filter.GetMean();
 
             // Update the log of force-torque readings
-            auto now = std::chrono::system_clock::now();
-            force_torque_values.push_back({now, force_values});
+            force_torque_sequence[ft_sequence_index].time = std::chrono::system_clock::now();
+            force_torque_sequence[ft_sequence_index].force_torque_values = ft_values;
+            ft_sequence_index++;
 
             // Check the total force does not exceed the limit
             double total_force = std::sqrt(
-                std::pow(force_values[0], 2) + std::pow(force_values[1], 2) + std::pow(force_values[2], 2));
+                std::pow(ft_values[0], 2) + std::pow(ft_values[1], 2) + std::pow(ft_values[2], 2));
             if (total_force_limit.has_value() && total_force > *total_force_limit)
             {
                 SPDLOG_INFO("Force limit exceeded. Total force: " + std::to_string(total_force)
@@ -726,7 +751,7 @@ namespace denso_controller
 
             // Check the total torque does not exceed the limit
             double total_torque = std::sqrt(
-                std::pow(force_values[3], 2) + std::pow(force_values[4], 2) + std::pow(force_values[5], 2));
+                std::pow(ft_values[3], 2) + std::pow(ft_values[4], 2) + std::pow(ft_values[5], 2));
             if (total_torque_limit.has_value() && total_torque > *total_torque_limit)
             {
                 SPDLOG_INFO("Torque limit exceeded. Total torque: " + std::to_string(total_torque)
@@ -740,9 +765,9 @@ namespace denso_controller
             {
                 for (int i = 0; i < 6; i++)
                 {
-                    if (std::abs(force_values[i]) > (*per_axis_force_torque_limits)[i])
+                    if (std::abs(ft_values[i]) > (*per_axis_force_torque_limits)[i])
                     {
-                        SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(force_values[i]));
+                        SPDLOG_INFO("TCP force/torque limit exceeded. Force/Torque: " + std::to_string(ft_values[i]));
                         atomic_force_limit_exceeded = true;
                         break;
                     }
@@ -754,18 +779,24 @@ namespace denso_controller
             std::chrono::duration<double, std::milli> elapsed = end - start;
             std::this_thread::sleep_for(std::chrono::milliseconds(period) - elapsed);
         }
+
+        // Truncate to the actual size
+        SPDLOG_INFO("Force-torque reading populated "
+                        + std::to_string(ft_sequence_index) + " of "
+                        + std::to_string(total_ft_values) + " reserved values.");
+        force_torque_sequence.resize(ft_sequence_index);
     }
 
     DensoController::ClosedLoopCommandServoJointResult
-    DensoController::ClosedLoopCommandServoJoint(const std::vector<double>& last_waypoint)
+    DensoController::ClosedLoopCommandServoJoint(const JointPosition& last_waypoint)
     {
         SPDLOG_INFO("Closed loop servo joint commands");
         /* Repeat the last servo j command until the robot reaches tolerance or timeout */
         const double CLOSE_LOOP_JOINT_ANGLE_TOLERANCE = 0.0001; // rad
         const int CLOSE_LOOP_MAX_ITERATION = 10;
-        std::vector<double> current_jnt_deg;
+        JointPosition current_jnt_deg;
         BCAP_HRESULT hr = write_driver.GetCurJnt(current_jnt_deg);
-        std::vector<double> current_jnt_rad = VDeg2Rad(current_jnt_deg);
+        JointPosition current_jnt_rad = VDeg2Rad(current_jnt_deg);
         if (FAILED(hr))
         {
             SPDLOG_ERROR("Closed loop servo j commands failed to get initial joint position");
@@ -878,7 +909,7 @@ namespace denso_controller
     }
 
     DensoController::CommandServoJointResult
-    DensoController::CommandServoJoint(const std::vector<double> &joint_position)
+    DensoController::CommandServoJoint(const JointPosition &joint_position)
     {
         BCAP_VARIANT vntPose = VNTFromRadVector(joint_position);
         BCAP_VARIANT vntReturn;
@@ -898,15 +929,6 @@ namespace denso_controller
     }
 
     ////////////////////////////// Utilities //////////////////////////////
-
-    const char *DensoController::CommandFromVector(std::vector<double> q)
-    {
-        std::vector<double> tmp;
-        tmp = VRad2Deg(q);
-        std::string commandstring;
-        commandstring = "J(" + std::to_string(tmp[0]) + ", " + std::to_string(tmp[1]) + ", " + std::to_string(tmp[2]) + ", " + std::to_string(tmp[3]) + ", " + std::to_string(tmp[4]) + ", " + std::to_string(tmp[5]) + ")";
-        return commandstring.c_str(); // convert string -> const shar*
-    }
 
     std::vector<double> DensoController::VectorFromVNT(BCAP_VARIANT vnt0)
     {
@@ -944,13 +966,11 @@ namespace denso_controller
         return vect;
     }
 
-    BCAP_VARIANT DensoController::VNTFromRadVector(std::vector<double> vect0)
+    BCAP_VARIANT DensoController::VNTFromRadVector(const JointPosition &vect0)
     {
-        assert(vect0.size() == 6 || vect0.size() == 8);
         BCAP_VARIANT vnt;
         vnt.Type = VT_R8 | VT_ARRAY;
         vnt.Arrays = 8;
-
         for (int i = 0; i < int(vect0.size()); i++)
         {
             vnt.Value.DoubleArray[i] = Rad2Deg(vect0[i]);
@@ -958,24 +978,22 @@ namespace denso_controller
         return vnt;
     }
 
-    std::vector<double> VRad2Deg(std::vector<double> vect0)
+    JointPosition VRad2Deg(const JointPosition &vect0)
     {
-        std::vector<double> resvect;
-        resvect.resize(0);
-        for (int i = 0; i < int(vect0.size()); i++)
+        JointPosition resvect;
+        for (size_t i = 0; i < vect0.size(); ++i)
         {
-            resvect.push_back(Rad2Deg(vect0[i]));
+            resvect[i] = Rad2Deg(vect0[i]);
         }
         return resvect;
     }
 
-    std::vector<double> VDeg2Rad(std::vector<double> vect0)
+    JointPosition VDeg2Rad(const JointPosition &vect0)
     {
-        std::vector<double> resvect;
-        resvect.resize(0);
-        for (int i = 0; i < int(vect0.size()); i++)
+        JointPosition resvect;
+        for (size_t i = 0; i < vect0.size(); ++i)
         {
-            resvect.push_back(Deg2Rad(vect0[i]));
+            resvect[i] = Deg2Rad(vect0[i]);
         }
         return resvect;
     }

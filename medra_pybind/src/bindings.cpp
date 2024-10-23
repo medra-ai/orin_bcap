@@ -14,17 +14,51 @@ namespace py = pybind11;
 using namespace denso_controller;
 
 PYBIND11_MODULE(_medra_bcap, m) {
+  py::class_<JointPosition>(m, "JointPosition")
+    .def(py::init<>())
+    .def("__getitem__", [](const JointPosition &j, size_t i) {
+      return j[i];
+    })
+    .def("__setitem__", [](JointPosition &j, size_t i, double v) {
+      j[i] = v;
+    });
+
+  py::class_<RobotTrajectory>(m, "RobotTrajectory")
+    .def(py::init<>())
+    .def("__getitem__", [](const RobotTrajectory &t, size_t i) {
+      return t[i];
+    })
+    .def("__setitem__", [](RobotTrajectory &t, size_t i, const JointPosition &j) {
+      t[i] = j;
+    });
+
+  py::class_<TimestampedWaypoint>(m, "TimestampedWaypoint")
+    .def(py::init<>())
+    .def_readonly("time", &TimestampedWaypoint::time)
+    .def_readonly("joint_position", &TimestampedWaypoint::joint_position);
+
+  py::class_<TimestampedTrajectory>(m, "TimestampedTrajectory")
+    .def(py::init<>())
+    .def("__getitem__", [](const TimestampedTrajectory &t, size_t i) {
+      return t[i];
+    });
+  
+  py::class_<TimestampedForceReading>(m, "TimestampedForceReading")
+    .def(py::init<>())
+    .def_readonly("time", &TimestampedForceReading::time)
+    .def_readonly("force_torque_values", &TimestampedForceReading::force_torque_values);
+  
+  py::class_<TimestampedForceSequence>(m, "TimestampedForceSequence")
+    .def(py::init<>())
+    .def("__getitem__", [](const TimestampedForceSequence &t, size_t i) {
+      return t[i];
+    });
+
   py::class_<TrajectoryExecutionResult>(m, "TrajectoryExecutionResult")
     .def_readonly("error_code", &TrajectoryExecutionResult::error_code)
     .def_readonly("result_code", &TrajectoryExecutionResult::result_code)
     .def_readonly("joint_positions", &TrajectoryExecutionResult::joint_positions)
     .def_readonly("force_torque_values", &TrajectoryExecutionResult::force_torque_values);
-
-  py::class_<RobotTrajectory>(m, "RobotTrajectory")
-    .def(py::init<>())
-    .def_readonly("dimension", &RobotTrajectory::dimension)
-    .def_readwrite("trajectory", &RobotTrajectory::trajectory)
-    .def("size", &RobotTrajectory::size);
 
   py::register_exception<bCapException>(m, "bCapException");
   py::register_exception<SlaveMoveException>(m, "SlaveMoveException");

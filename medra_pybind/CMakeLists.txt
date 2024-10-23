@@ -22,7 +22,6 @@ set(MODULE_NAME medra_bcap)
 set(PYBIND11_SOURCES 
     src/bindings.cpp
     src/b-Cap.c
-    src/filter.cpp
     src/DensoController.cpp
     tests/test_execute_servo_trajectory.cpp
 )
@@ -65,7 +64,6 @@ target_link_libraries(_${MODULE_NAME} PRIVATE spdlog::spdlog)
 add_executable(
   test_execute_servo_trajectory 
   tests/test_execute_servo_trajectory.cpp 
-  src/filter.cpp
   src/DensoController.cpp 
   src/b-Cap.c
 )

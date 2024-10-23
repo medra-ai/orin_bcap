@@ -24,7 +24,7 @@ int main(){
     // TODO: Add manual reset and clear errors
 
     // Generate a trajectory
-    std::vector<double> currentPose;
+    denso_controller::JointPosition currentPose;
     auto jt_tuple = controller.GetJointPositions();
     hr = std::get<0>(jt_tuple);
 
@@ -44,10 +44,10 @@ int main(){
               << " " << currentPose[4]
               << " " << currentPose[5] << std::endl;
 
-    std::vector<std::vector<double>> forward_trajectory_poses = {currentPose};
-    std::vector<std::vector<double>> reverse_trajectory_poses = {};
+    denso_controller::RobotTrajectory forward_trajectory = {currentPose};
+    denso_controller::RobotTrajectory reverse_trajectory = {};
     for (size_t i = 0; i < 100; i++) {
-        std::vector<double> newPose = {
+        denso_controller::JointPosition newPose = {
             currentPose[0],
             currentPose[1],
             currentPose[2],
@@ -55,15 +55,10 @@ int main(){
             currentPose[4],
             currentPose[5] + 0.001,
         };
-        forward_trajectory_poses.push_back(newPose);
-        reverse_trajectory_poses.insert(reverse_trajectory_poses.begin(), currentPose);
+        forward_trajectory.push_back(newPose);
+        reverse_trajectory.insert(reverse_trajectory.begin(), currentPose);
         currentPose = newPose;
     }
-
-    RobotTrajectory forward_trajectory;
-    forward_trajectory.trajectory = forward_trajectory_poses;
-    RobotTrajectory reverse_trajectory;
-    reverse_trajectory.trajectory = reverse_trajectory_poses;
 
     // Execute the trajectory
     for (size_t iters = 0; iters < 100000; ++iters) {
