@@ -15,22 +15,10 @@ using namespace denso_controller;
 
 PYBIND11_MODULE(_medra_bcap, m) {
   py::class_<JointPosition>(m, "JointPosition")
-    .def(py::init<>())
-    .def("__getitem__", [](const JointPosition &j, size_t i) {
-      return j[i];
-    })
-    .def("__setitem__", [](JointPosition &j, size_t i, double v) {
-      j[i] = v;
-    });
+    .def(py::init<>());
 
   py::class_<RobotTrajectory>(m, "RobotTrajectory")
-    .def(py::init<>())
-    .def("__getitem__", [](const RobotTrajectory &t, size_t i) {
-      return t[i];
-    })
-    .def("__setitem__", [](RobotTrajectory &t, size_t i, const JointPosition &j) {
-      t[i] = j;
-    });
+    .def(py::init<>());
 
   py::class_<TimestampedWaypoint>(m, "TimestampedWaypoint")
     .def(py::init<>())
@@ -38,10 +26,7 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def_readonly("joint_position", &TimestampedWaypoint::joint_position);
 
   py::class_<TimestampedTrajectory>(m, "TimestampedTrajectory")
-    .def(py::init<>())
-    .def("__getitem__", [](const TimestampedTrajectory &t, size_t i) {
-      return t[i];
-    });
+    .def(py::init<>());
   
   py::class_<TimestampedForceReading>(m, "TimestampedForceReading")
     .def(py::init<>())
