@@ -502,7 +502,7 @@ namespace denso_controller
             || per_axis_force_torque_limits.has_value()
         ) {
             // Wait some time for the arm and sensor to settle.
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             // Reset the force sensor to prevent drift in the force readings.
             // Do it here, instead of in the force sensing thread, because this call
             // requires the arm mutex.
@@ -569,6 +569,13 @@ namespace denso_controller
         // Reserve memory for the joint positions here to avoid
         // potentially expensive reallocations during real-time execution.
         TimestampedTrajectory joint_positions(traj.size());
+
+        // Send the same command for 50ms while waiting for the arm to settle
+        auto start_time = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start_time < std::chrono::milliseconds(50))
+        {
+            result = CommandServoJoint(joint_position);
+        }
 
         for (size_t i = 0; i < traj.size(); i++)
         {
