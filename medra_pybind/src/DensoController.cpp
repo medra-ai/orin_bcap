@@ -178,7 +178,7 @@ namespace denso_controller
         }
         if (FAILED(hr))
         {
-            SPDLOG_ERROR("Failed to get current joint values.");
+            SPDLOG_ERROR("Failed to get current joint values. Error code: " + std::to_string(hr));
             return hr;
         }
 
@@ -204,7 +204,7 @@ namespace denso_controller
         }
         if (FAILED(hr))
         {
-            SPDLOG_ERROR("Failed to get current force values.");
+            SPDLOG_ERROR("Failed to get current force values. Error code: " + std::to_string(hr));
             return hr;
         }
 
@@ -379,7 +379,7 @@ namespace denso_controller
         }
         if FAILED (hr)
         {
-            SPDLOG_ERROR("Failed to execute ForceSensor.");
+            SPDLOG_ERROR("Failed to execute ForceSensor. Error code: " + std::to_string(hr));
         }
         return hr;
     }
@@ -550,7 +550,7 @@ namespace denso_controller
                 SPDLOG_INFO("Slave mode ON");
                 break;
             case EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED:
-                SPDLOG_ERROR("Failed to enter b-CAP slave mode.");  // + err_description);
+                SPDLOG_ERROR("Failed to enter b-CAP slave mode.");
                 atomic_force_limit_exceeded = true;
                 force_sensing_thread.join();
                 return {
@@ -918,7 +918,7 @@ namespace denso_controller
         {
             return CommandServoJointResult::SUCCESS;
         }
-        SPDLOG_ERROR("Failed to command servo joint. Resetting robot.");
+        SPDLOG_ERROR("Failed to command servo joint. Resetting robot. Error code: " + std::to_string(hr));
 
         write_driver.SlvChangeMode(SERVO_MODE_OFF);
         write_driver.ClearError();
