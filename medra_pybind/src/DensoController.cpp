@@ -298,12 +298,14 @@ namespace denso_controller
 
     BCAP_HRESULT DensoReadWriteDriver::TakeArm()
     {
+        SPDLOG_INFO("TakeArm()");
         long lResult;
         return bCap_RobotExecute(iSockFD, lhRobot, "TakeArm", "", &lResult);
     }
 
     BCAP_HRESULT DensoReadWriteDriver::GiveArm()
     {
+        SPDLOG_INFO("GiveArm()");
         long lResult;
         return bCap_RobotExecute(iSockFD, lhRobot, "GiveArm", "", &lResult);
     }
@@ -485,6 +487,7 @@ namespace denso_controller
 
     void DensoController::SetTrajectoryExecutionEnabled(bool enabled)
     {
+        SPDLOG_INFO("Setting trajectory execution enabled to " + std::to_string(enabled));
         atomic_trajectory_execution_enabled = enabled;
     }
 
