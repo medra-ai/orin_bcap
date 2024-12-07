@@ -62,12 +62,12 @@ pybind11_add_module(_${MODULE_NAME} ${PYBIND11_SOURCES})
 target_link_libraries(_${MODULE_NAME} PRIVATE spdlog::spdlog)
 
 add_executable(
-  test_execute_servo_trajectory 
-  tests/test_execute_servo_trajectory.cpp 
+  test_arm_mutex 
+  tests/test_arm_mutex.cpp 
   src/DensoController.cpp 
   src/b-Cap.c
 )
-target_link_libraries(test_execute_servo_trajectory PRIVATE spdlog::spdlog)
+target_link_libraries(test_arm_mutex PRIVATE spdlog::spdlog)
 
 add_custom_target(generate_stub ALL
     COMMAND ${Python_EXECUTABLE} "-m" "pybind11_stubgen" "-o${CMAKE_CURRENT_BINARY_DIR}" "_${MODULE_NAME}"
