@@ -210,12 +210,12 @@ public:
 // RAII-style mutex for the Denso arm mutex for axis control.
 // See "TakeArm" and "GiveArm" in the Cobotta Pro manual for more information
 // about the Denso arm mutex.
-// The constructor calls "TakeArm" and "Motor(1)", and the destructor calls
-// "GiveArm".
+// Claim() calls "TakeArm" and "Motor(1)", and the destructor calls "GiveArm".
 class DensoArmMutex {
 public:
     DensoArmMutex(DensoReadWriteDriver &driver);
     ~DensoArmMutex();
+    bool Claim();
 
 private:
     DensoReadWriteDriver &driver;

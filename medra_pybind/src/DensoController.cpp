@@ -25,13 +25,52 @@
 #include <string.h>
 #include <cstdio>
 
+
+constexpr size_t TAKE_ARM_RETRY_COUNT = 3;
+constexpr size_t MOTOR_ON_RETRY_COUNT = 3;
+
 namespace denso_controller
 {
+    DensoArmMutex::DensoArmMutex(DensoReadWriteDriver &driver) : driver(driver) {}
 
-    DensoArmMutex::DensoArmMutex(DensoReadWriteDriver &driver) : driver(driver)
+    bool DensoArmMutex::Claim()
     {
-        driver.TakeArm();
-        driver.Motor(true);
+        BCAP_HRESULT hr;
+        for (size_t i = 0; i < TAKE_ARM_RETRY_COUNT; ++i)
+        {
+            hr = driver.TakeArm();
+            if (FAILED(hr)) {
+                SPDLOG_WARN("Failed to take arm. Error code: " + std::to_string(hr));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            } else {
+                break;
+            }
+        }
+        if (FAILED(hr)) {
+            SPDLOG_ERROR(
+                "Failed to take arm after " + std::to_string(TAKE_ARM_RETRY_COUNT) + " attempts."
+            );
+            return false;
+        }
+
+        for (size_t i = 0; i < MOTOR_ON_RETRY_COUNT; ++i)
+        {
+            hr = driver.Motor(true);
+            if (FAILED(hr)) {
+                SPDLOG_WARN("Failed to turn motor on. Error code: " + std::to_string(hr));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            } else {
+                break;
+            }
+        }
+        if (FAILED(hr)) {
+            SPDLOG_ERROR(
+                "Failed to turn motor on after " + std::to_string(MOTOR_ON_RETRY_COUNT) + " attempts."
+            );
+            return false;
+        }
+
+        return true;
     }
 
     DensoArmMutex::~DensoArmMutex()
@@ -328,6 +367,7 @@ namespace denso_controller
         // tool_value = 2; // ROBOTIQ_2F140_GRIPPER_PAYLOAD
         long lValue = tool_value;
         auto arm_mutex = DensoArmMutex(*this);
+        arm_mutex.Claim();
 
         BCAP_HRESULT hr = BCAP_S_OK;
         uint32_t lhVar;
@@ -419,11 +459,8 @@ namespace denso_controller
         }
 
         auto arm_mutex = DensoArmMutex(write_driver);
-        hr = write_driver.Motor(true);
-        if FAILED (hr)
-        {
-            HandleError(hr, "MotorOn failed.");
-        }
+        arm_mutex.Claim();
+
         current_waypoint_index = 0;
     }
 
@@ -499,6 +536,7 @@ namespace denso_controller
         const std::optional<ForceTorque> per_axis_force_torque_limits)
     {
         auto arm_mutex = DensoArmMutex(write_driver);
+        arm_mutex.Claim();
 
         if (total_force_limit.has_value()
             || total_torque_limit.has_value()
