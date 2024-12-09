@@ -575,21 +575,20 @@ namespace denso_controller
 
         for (size_t i = 0; i < traj.size(); i++)
         {
-            current_waypoint_index = i;
             // Stop if the force exceedance condition is true
-            if (current_waypoint_index > 4 && atomic_force_limit_exceeded)
+            if (i > 4 && atomic_force_limit_exceeded)
             {
                 SPDLOG_INFO("Force limit exceeded after "
-                            + std::to_string(current_waypoint_index)
+                            + std::to_string(i)
                             + " of " + std::to_string(traj.size())
                             + " waypoints. Stopping trajectory execution.");
                 force_limit_exceeded = true;
                 break;
             }
-            if (current_waypoint_index > 4 && !atomic_trajectory_execution_enabled)
+            if (i > 4 && !atomic_trajectory_execution_enabled)
             {
                 SPDLOG_INFO("Trajectory execution has been disabled at waypoint index "
-                            + std::to_string(current_waypoint_index) + " of "
+                            + std::to_string(i) + " of "
                             + std::to_string(traj.size())
                             + ". Stopping trajectory execution early.");
                 trajectory_stopped_early = true;
@@ -597,6 +596,7 @@ namespace denso_controller
                 break;
             }
 
+            current_waypoint_index = i;
             const auto &joint_position = traj[i];
             result = CommandServoJoint(joint_position);
 
