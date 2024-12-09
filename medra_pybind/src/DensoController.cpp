@@ -640,7 +640,7 @@ namespace denso_controller
         // Close loop servo commands on last waypoint.
         if (exec_complete)
         {
-            switch (ClosedLoopCommandServoJoint(traj[current_waypoint_index - 1]))
+            switch (ClosedLoopCommandServoJoint(traj[current_waypoint_index]))
             {
                 case ClosedLoopCommandServoJointResult::SUCCESS:
                     SPDLOG_INFO("Closed loop servo joint commands successful");
