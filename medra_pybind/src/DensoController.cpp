@@ -26,8 +26,6 @@
 #include <cstdio>
 
 
-constexpr size_t MOTOR_ON_RETRY_COUNT = 3;
-
 namespace denso_controller
 {
     DensoArmMutex::DensoArmMutex(DensoReadWriteDriver &driver) : driver(driver) {
@@ -197,7 +195,7 @@ namespace denso_controller
             {
                 break;
             }
-            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt));
+            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt) + ". Error code: " + std::to_string(hr));
             ClearError();
         }
         if (FAILED(hr))
