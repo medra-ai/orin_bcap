@@ -25,17 +25,39 @@
 #include <string.h>
 #include <cstdio>
 
+
 namespace denso_controller
 {
+    DensoArmMutex::DensoArmMutex(DensoReadWriteDriver &driver) : driver(driver) {
+        uuid = std::to_string(rand());
+    }
 
-    DensoArmMutex::DensoArmMutex(DensoReadWriteDriver &driver) : driver(driver)
+    bool DensoArmMutex::Claim()
     {
-        driver.TakeArm();
-        driver.Motor(true);
+        SPDLOG_INFO("DensoArmMutex " + uuid + " Claim.");
+
+        BCAP_HRESULT hr = driver.TakeArm();
+        if (FAILED(hr)) {
+            SPDLOG_ERROR(
+                "Failed to take arm. Error code: " + std::to_string(hr)
+            );
+            return false;
+        }
+
+        hr = driver.Motor(true);
+        if (FAILED(hr)) {
+            SPDLOG_ERROR(
+                "Failed to turn motor on. Error code: " + std::to_string(hr)
+            );
+            return false;
+        }
+
+        return true;
     }
 
     DensoArmMutex::~DensoArmMutex()
     {
+        SPDLOG_INFO("DensoArmMutex " + uuid + " Release.");
         driver.GiveArm();
     }
 
@@ -173,7 +195,7 @@ namespace denso_controller
             {
                 break;
             }
-            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt));
+            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt) + ". Error code: " + std::to_string(hr));
             ClearError();
         }
         if (FAILED(hr))
@@ -328,6 +350,7 @@ namespace denso_controller
         // tool_value = 2; // ROBOTIQ_2F140_GRIPPER_PAYLOAD
         long lValue = tool_value;
         auto arm_mutex = DensoArmMutex(*this);
+        arm_mutex.Claim();
 
         BCAP_HRESULT hr = BCAP_S_OK;
         uint32_t lhVar;
@@ -419,11 +442,8 @@ namespace denso_controller
         }
 
         auto arm_mutex = DensoArmMutex(write_driver);
-        hr = write_driver.Motor(true);
-        if FAILED (hr)
-        {
-            HandleError(hr, "MotorOn failed.");
-        }
+        arm_mutex.Claim();
+
         current_waypoint_index = 0;
     }
 
@@ -499,6 +519,7 @@ namespace denso_controller
         const std::optional<ForceTorque> per_axis_force_torque_limits)
     {
         auto arm_mutex = DensoArmMutex(write_driver);
+        arm_mutex.Claim();
 
         if (total_force_limit.has_value()
             || total_torque_limit.has_value()
