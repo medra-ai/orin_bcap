@@ -518,6 +518,8 @@ namespace denso_controller
         const std::optional<double> total_torque_limit,
         const std::optional<ForceTorque> per_axis_force_torque_limits)
     {
+        current_waypoint_index = 0;
+
         auto arm_mutex = DensoArmMutex(write_driver);
         arm_mutex.Claim();
 
