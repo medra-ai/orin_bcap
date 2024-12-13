@@ -16,6 +16,7 @@ message("Using GNU or Clang compiler")
 add_compile_options(-Wswitch -Wswitch-enum)  # Checks that all switch cases are covered
 add_compile_options(-Wall)  # Enable all warnings
 add_compile_options(-Wextra)  # Enable extra warnings
+add_compile_options(-Wpedantic)  # Enable pedantic warnings
 
 # Set the names and sources of the module
 set(MODULE_NAME medra_bcap)
