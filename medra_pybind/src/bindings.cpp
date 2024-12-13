@@ -92,7 +92,5 @@ PYBIND11_MODULE(_medra_bcap, m) {
     )
     .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>(),
           py::arg("work_coordinate")
-    )
-
-    .def_readonly("current_waypoint_index", &DensoController::current_waypoint_index);
+    );
 }

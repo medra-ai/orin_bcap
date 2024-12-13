@@ -75,6 +75,10 @@ struct TrajectoryExecutionResult {
     TimestampedTrajectory joint_positions;
     // Log of times and force/torque values for each waypoint in the trajectory.
     TimestampedForceSequence force_torque_values;
+
+    // The index of the first waypoint not visited, or the length of the list
+    // if all waypoints were visited.
+    size_t next_waypoint_idx;
 };
 
 class bCapException : public std::exception {
@@ -260,8 +264,6 @@ public:
 
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);
     std::tuple<BCAP_HRESULT, std::vector<double>> GetMountingCalib(const char* work_coordinate);
-
-    int current_waypoint_index;
 
     // Disable/enable trajectory execution.
     bool GetTrajectoryExecutionEnabled();
