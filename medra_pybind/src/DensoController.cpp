@@ -412,7 +412,6 @@ namespace denso_controller
     DensoController::DensoController() : read_driver(DensoReadDriver()),
                                          write_driver(DensoReadWriteDriver())
     {
-        current_waypoint_index = 0;
         atomic_trajectory_execution_enabled = true;
     }
 
@@ -443,8 +442,6 @@ namespace denso_controller
 
         auto arm_mutex = DensoArmMutex(write_driver);
         arm_mutex.Claim();
-
-        current_waypoint_index = 0;
     }
 
     void DensoController::Stop()
@@ -518,8 +515,6 @@ namespace denso_controller
         const std::optional<double> total_torque_limit,
         const std::optional<ForceTorque> per_axis_force_torque_limits)
     {
-        current_waypoint_index = 0;
-
         auto arm_mutex = DensoArmMutex(write_driver);
         arm_mutex.Claim();
 
@@ -539,7 +534,8 @@ namespace denso_controller
                     ExecuteServoTrajectoryError::FORCE_SENSOR_RESET_FAILED,
                     ExecuteServoTrajectoryResult::ERROR,
                     TimestampedTrajectory(),
-                    TimestampedForceSequence()
+                    TimestampedForceSequence(),
+                    0
                 };
             }
         }
@@ -583,7 +579,8 @@ namespace denso_controller
                     ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED,
                     ExecuteServoTrajectoryResult::ERROR,
                     TimestampedTrajectory(),
-                    TimestampedForceSequence()
+                    TimestampedForceSequence(),
+                    0
                 };
         }
 
@@ -619,7 +616,6 @@ namespace denso_controller
                 break;
             }
 
-            current_waypoint_index = i;
             const auto &joint_position = traj[i];
             result = CommandServoJoint(joint_position);
 
@@ -641,7 +637,7 @@ namespace denso_controller
                     atomic_force_limit_exceeded = true;
                     force_sensing_thread.join();
 
-                    joint_positions.resize(current_waypoint_index + 1);
+                    joint_positions.resize(i + 1);
 
                     // No need to exit slave mode here because the controller
                     // releases slave mode when an error occurs.
@@ -649,7 +645,8 @@ namespace denso_controller
                         ExecuteServoTrajectoryError::SLAVE_MOVE_FAILED,
                         ExecuteServoTrajectoryResult::ERROR,
                         joint_positions,
-                        force_torque_values
+                        force_torque_values,
+                        i
                     };
             }
         }
@@ -663,7 +660,7 @@ namespace denso_controller
         // Close loop servo commands on last waypoint.
         if (exec_complete)
         {
-            switch (ClosedLoopCommandServoJoint(traj[current_waypoint_index]))
+            switch (ClosedLoopCommandServoJoint(traj[traj.size() - 1]))
             {
                 case ClosedLoopCommandServoJointResult::SUCCESS:
                     SPDLOG_INFO("Closed loop servo joint commands successful");
@@ -696,21 +693,23 @@ namespace denso_controller
                 break;
             case ExitSlaveModeResult::EXIT_SLAVE_MODE_FAILED:
                 SPDLOG_ERROR("Failed to exit b-CAP slave mode.");
-                joint_positions.resize(current_waypoint_index + 1);
+                joint_positions.resize(traj.size());
                 return {
                     ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED,
                     trajectory_result,
                     joint_positions,
-                    force_torque_values
+                    force_torque_values,
+                    traj.size()
                 };
         }
 
-        joint_positions.resize(current_waypoint_index + 1);
+        joint_positions.resize(traj.size());
         return {
             ExecuteServoTrajectoryError::SUCCESS,
             trajectory_result,
             joint_positions,
-            force_torque_values
+            force_torque_values,
+            traj.size()
         };
     }
 

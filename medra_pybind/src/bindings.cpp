@@ -43,7 +43,10 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .def_readonly("error_code", &TrajectoryExecutionResult::error_code)
     .def_readonly("result_code", &TrajectoryExecutionResult::result_code)
     .def_readonly("joint_positions", &TrajectoryExecutionResult::joint_positions)
-    .def_readonly("force_torque_values", &TrajectoryExecutionResult::force_torque_values);
+    .def_readonly("force_torque_values", &TrajectoryExecutionResult::force_torque_values)
+    .def_readonly("next_waypoint_idx", &TrajectoryExecutionResult::next_waypoint_idx)
+    .def(py::init<ExecuteServoTrajectoryError, ExecuteServoTrajectoryResult, TimestampedTrajectory, TimestampedForceSequence, size_t>(),
+         py::arg("error_code"), py::arg("result_code"), py::arg("joint_positions"), py::arg("force_torque_values"), py::arg("next_waypoint_idx"));
 
   py::register_exception<bCapException>(m, "bCapException");
   py::register_exception<SlaveMoveException>(m, "SlaveMoveException");
@@ -54,12 +57,14 @@ PYBIND11_MODULE(_medra_bcap, m) {
     .value("SUCCESS", ExecuteServoTrajectoryError::SUCCESS)
     .value("ENTER_SLAVE_MODE_FAILED", ExecuteServoTrajectoryError::ENTER_SLAVE_MODE_FAILED)
     .value("SLAVE_MOVE_FAILED", ExecuteServoTrajectoryError::SLAVE_MOVE_FAILED)
-    .value("EXIT_SLAVE_MODE_FAILED", ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED);
+    .value("EXIT_SLAVE_MODE_FAILED", ExecuteServoTrajectoryError::EXIT_SLAVE_MODE_FAILED)
+    .def(py::init<>());
   
   py::enum_<ExecuteServoTrajectoryResult>(m, "ExecuteServoTrajectoryResult")
     .value("COMPLETE", ExecuteServoTrajectoryResult::COMPLETE)
     .value("FORCE_LIMIT_EXCEEDED", ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED)
-    .value("ERROR", ExecuteServoTrajectoryResult::ERROR);
+    .value("ERROR", ExecuteServoTrajectoryResult::ERROR)
+    .def(py::init<>());
 
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<>())
@@ -92,7 +97,5 @@ PYBIND11_MODULE(_medra_bcap, m) {
     )
     .def("GetMountingCalib", &DensoController::GetMountingCalib, py::call_guard<py::gil_scoped_release>(),
           py::arg("work_coordinate")
-    )
-
-    .def_readonly("current_waypoint_index", &DensoController::current_waypoint_index);
+    );
 }
