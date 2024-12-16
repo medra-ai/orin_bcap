@@ -519,6 +519,7 @@ namespace denso_controller
         const std::optional<ForceTorque> per_axis_force_torque_limits)
     {
         current_waypoint_index = 0;
+        JointPosition current_jnt_deg;
 
         auto arm_mutex = DensoArmMutex(write_driver);
         arm_mutex.Claim();
@@ -623,8 +624,13 @@ namespace denso_controller
             const auto &joint_position = traj[i];
             result = CommandServoJoint(joint_position);
 
+            BCAP_HRESULT hr = write_driver.GetCurJnt(current_jnt_deg);
+            if (FAILED(hr))
+            {
+                SPDLOG_ERROR("Execute servo trajectory failed to get joint position, index " + std::to_string(i));
+            }
             joint_positions[i].time = std::chrono::system_clock::now();
-            joint_positions[i].joint_position = joint_position;
+            joint_positions[i].joint_position = VDeg2Rad(current_jnt_deg);
 
             switch (result)
             {
