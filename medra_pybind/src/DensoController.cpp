@@ -650,21 +650,18 @@ namespace denso_controller
         // thread for too long, causing command position buffer underflow.
         atomic_force_limit_exceeded = true;
 
-        // Close loop servo commands on last waypoint.
-        if (exec_complete)
+        // Close loop servo commands on last waypoint to come to a soft stop.
+        switch (ClosedLoopCommandServoJoint(traj[current_waypoint_index]))
         {
-            switch (ClosedLoopCommandServoJoint(traj[current_waypoint_index]))
-            {
-                case ClosedLoopCommandServoJointResult::SUCCESS:
-                    SPDLOG_INFO("Closed loop servo joint commands successful");
-                    break;
-                case ClosedLoopCommandServoJointResult::GET_CUR_JNT_FAILED:
-                case ClosedLoopCommandServoJointResult::SLAVE_MOVE_FAILED:
-                    // The trajectory is essentially complete at this point, so we
-                    // don't do anything special if the closed loop commands fail.
-                    SPDLOG_ERROR("Closed loop servo joint commands failed");
-                    break;
-            }
+            case ClosedLoopCommandServoJointResult::SUCCESS:
+                SPDLOG_INFO("Closed loop servo joint commands successful");
+                break;
+            case ClosedLoopCommandServoJointResult::GET_CUR_JNT_FAILED:
+            case ClosedLoopCommandServoJointResult::SLAVE_MOVE_FAILED:
+                // The trajectory is essentially complete at this point, so we
+                // don't do anything special if the closed loop commands fail.
+                SPDLOG_ERROR("Closed loop servo joint commands failed");
+                break;
         }
         force_sensing_thread.join();
 
