@@ -558,6 +558,8 @@ namespace denso_controller
             std::ref(force_torque_values)
         );
 
+        SetTrajectoryExecutionEnabled(true);
+
         // Enter slave mode
         SPDLOG_INFO("Entering slave mode");
         switch (EnterSlaveMode())
