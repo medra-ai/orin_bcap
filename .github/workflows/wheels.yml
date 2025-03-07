@@ -35,9 +35,9 @@ jobs:
           CIBW_SKIP: "*-win32 *-musllinux_* *_i686"
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: medra_pybind/wheelhouse/
 
       - if: github.ref == 'refs/heads/main'
@@ -56,10 +56,11 @@ jobs:
       cancel-in-progress: true
     needs: [build_wheels]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          pattern: wheels-*
           path: medra_pybind/wheelhouse/
+          merge-multiple: true
 
       - name: GitHub release
         uses: ncipollo/release-action@v1.12.0
@@ -84,10 +85,11 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Download wheels
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: wheels
+          pattern: wheels-*
           path: medra_pybind/wheelhouse/
+          merge-multiple: true
 
       - name: GitHub release
         uses: ncipollo/release-action@v1.12.0
