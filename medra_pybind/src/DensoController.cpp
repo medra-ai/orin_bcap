@@ -187,17 +187,7 @@ namespace denso_controller
     BCAP_HRESULT DensoReadDriver::GetCurJnt(JointPosition &joint_positions)
     {
         double dJnt[8];
-        BCAP_HRESULT hr;
-        for (size_t attempt = 0; attempt < 3; ++attempt)
-        {
-            hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
-            if (SUCCEEDED(hr))
-            {
-                break;
-            }
-            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt) + ". Error code: " + std::to_string(hr));
-            ClearError();
-        }
+        BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
         if (FAILED(hr))
         {
             SPDLOG_ERROR("Failed to get current joint values. Error code: " + std::to_string(hr));
@@ -673,7 +663,6 @@ namespace denso_controller
                     // The trajectory is essentially complete at this point, so we
                     // don't do anything special if the closed loop commands fail.
                     SPDLOG_ERROR("Closed loop servo joint commands failed");
-                    ClearError();  // NOTE(charles): I don't think we need to clear here.
                     break;
             }
         }
@@ -946,9 +935,7 @@ namespace denso_controller
         }
         SPDLOG_ERROR("Failed to command servo joint. Resetting robot. Error code: " + std::to_string(hr));
 
-        write_driver.SlvChangeMode(SERVO_MODE_OFF);
-        write_driver.ClearError();
-        write_driver.ManualReset();
+        write_driver.SlvChangeMode(SERVO_MODE_OFF);;
         SPDLOG_INFO("Cleared errors after failed servo command.");
 
         return CommandServoJointResult::SLAVE_MOVE_FAILED;

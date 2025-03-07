@@ -59,7 +59,8 @@ PYBIND11_MODULE(_medra_bcap, m) {
   py::enum_<ExecuteServoTrajectoryResult>(m, "ExecuteServoTrajectoryResult")
     .value("COMPLETE", ExecuteServoTrajectoryResult::COMPLETE)
     .value("FORCE_LIMIT_EXCEEDED", ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED)
-    .value("ERROR", ExecuteServoTrajectoryResult::ERROR);
+    .value("ERROR", ExecuteServoTrajectoryResult::ERROR)
+    .value("EARLY_STOP_REQUESTED", ExecuteServoTrajectoryResult::EARLY_STOP_REQUESTED);
 
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<>())
