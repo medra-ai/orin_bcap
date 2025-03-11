@@ -519,7 +519,7 @@ namespace denso_controller
             || per_axis_force_torque_limits.has_value()
         ) {
             // Wait some time for the arm and sensor to settle.
-            std::this_thread::sleep_for(std::chrono::milliseconds(wait_before_execution_in_seconds));
+            std::this_thread::sleep_for(std::chrono::seconds(wait_before_execution_in_seconds));
             // Reset the force sensor to prevent drift in the force readings.
             // Do it here, instead of in the force sensing thread, because this call
             // requires the arm mutex.
