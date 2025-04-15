@@ -596,7 +596,7 @@ namespace denso_controller
         // potentially expensive reallocations during real-time execution.
         TimestampedTrajectory joint_positions(traj.size());
 
-        for (size_t i = 0; i < traj.size(); i++)
+        for (size_t i = 0; i < traj.size();)
         {
             // Stop if the force exceedance condition is true
             if (i > 4 && atomic_force_limit_exceeded)
@@ -652,6 +652,18 @@ namespace denso_controller
                         force_torque_values
                     };
             }
+
+            // check error between current joint position and target joint position
+            bool joint_position_error_within_tolerance = true;
+            for (size_t j = 0; j < joint_position.size(); j++) {
+                if (std::abs(joint_positions[i].joint_position[j] - joint_position[j]) > 0.001) {
+                    joint_position_error_within_tolerance = false;
+                    break;
+                }
+            }
+            if (joint_position_error_within_tolerance) {
+                i++;
+            } 
         }
 
         bool exec_complete = !force_limit_exceeded && !trajectory_stopped_early;
