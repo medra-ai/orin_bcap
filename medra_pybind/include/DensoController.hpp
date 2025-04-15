@@ -255,7 +255,8 @@ public:
         const RobotTrajectory& traj,
         const std::optional<double> total_force_limit = std::nullopt,
         const std::optional<double> total_torque_limit = std::nullopt,
-        const std::optional<ForceTorque> per_axis_force_torque_limits = std::nullopt
+        const std::optional<ForceTorque> per_axis_force_torque_limits = std::nullopt,
+        const std::optional<double> wait_before_execution_in_seconds = std::nullopt
     );
 
     BCAP_HRESULT SetTcpLoad(const int32_t tool_value);

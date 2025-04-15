@@ -59,7 +59,8 @@ PYBIND11_MODULE(_medra_bcap, m) {
   py::enum_<ExecuteServoTrajectoryResult>(m, "ExecuteServoTrajectoryResult")
     .value("COMPLETE", ExecuteServoTrajectoryResult::COMPLETE)
     .value("FORCE_LIMIT_EXCEEDED", ExecuteServoTrajectoryResult::FORCE_LIMIT_EXCEEDED)
-    .value("ERROR", ExecuteServoTrajectoryResult::ERROR);
+    .value("ERROR", ExecuteServoTrajectoryResult::ERROR)
+    .value("EARLY_STOP_REQUESTED", ExecuteServoTrajectoryResult::EARLY_STOP_REQUESTED);
 
   py::class_<DensoController>(m, "DensoController")
     .def(py::init<>())
@@ -83,7 +84,11 @@ PYBIND11_MODULE(_medra_bcap, m) {
 
     .def("GetJointPositions", &DensoController::GetJointPositions, py::call_guard<py::gil_scoped_release>())
     .def("ExecuteServoTrajectory", &DensoController::ExecuteServoTrajectory, py::call_guard<py::gil_scoped_release>(),
-          py::arg("traj"), py::arg("total_force_limit"), py::arg("total_torque_limit"), py::arg("per_axis_force_torque_limits")
+          py::arg("traj"), 
+          py::arg("total_force_limit") = std::nullopt,
+          py::arg("total_torque_limit") = std::nullopt,
+          py::arg("per_axis_force_torque_limits") = std::nullopt,
+          py::arg("wait_before_execution_in_seconds") = std::nullopt
     )
     .def("GetTrajectoryExecutionEnabled", &DensoController::GetTrajectoryExecutionEnabled, py::call_guard<py::gil_scoped_release>())
     .def("SetTrajectoryExecutionEnabled", &DensoController::SetTrajectoryExecutionEnabled, py::call_guard<py::gil_scoped_release>())

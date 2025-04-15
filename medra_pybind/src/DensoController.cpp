@@ -187,17 +187,7 @@ namespace denso_controller
     BCAP_HRESULT DensoReadDriver::GetCurJnt(JointPosition &joint_positions)
     {
         double dJnt[8];
-        BCAP_HRESULT hr;
-        for (size_t attempt = 0; attempt < 3; ++attempt)
-        {
-            hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
-            if (SUCCEEDED(hr))
-            {
-                break;
-            }
-            SPDLOG_WARN("Failed to get joint pos, attempt " + std::to_string(attempt) + ". Error code: " + std::to_string(hr));
-            ClearError();
-        }
+        BCAP_HRESULT hr = bCap_RobotExecute(iSockFD, lhRobot, "CurJnt", "", &dJnt);
         if (FAILED(hr))
         {
             SPDLOG_ERROR("Failed to get current joint values. Error code: " + std::to_string(hr));
@@ -516,7 +506,8 @@ namespace denso_controller
         const RobotTrajectory &traj,
         const std::optional<double> total_force_limit,
         const std::optional<double> total_torque_limit,
-        const std::optional<ForceTorque> per_axis_force_torque_limits)
+        const std::optional<ForceTorque> per_axis_force_torque_limits,
+        const std::optional<double> wait_before_execution_in_seconds)
     {
         current_waypoint_index = 0;
 
@@ -528,7 +519,7 @@ namespace denso_controller
             || per_axis_force_torque_limits.has_value()
         ) {
             // Wait some time for the arm and sensor to settle.
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(1000 * wait_before_execution_in_seconds.value_or(0.1))));
             // Reset the force sensor to prevent drift in the force readings.
             // Do it here, instead of in the force sensing thread, because this call
             // requires the arm mutex.
@@ -673,7 +664,6 @@ namespace denso_controller
                     // The trajectory is essentially complete at this point, so we
                     // don't do anything special if the closed loop commands fail.
                     SPDLOG_ERROR("Closed loop servo joint commands failed");
-                    ClearError();  // NOTE(charles): I don't think we need to clear here.
                     break;
             }
         }
@@ -951,9 +941,7 @@ namespace denso_controller
         }
         SPDLOG_ERROR("Failed to command servo joint. Resetting robot. Error code: " + std::to_string(hr));
 
-        write_driver.SlvChangeMode(SERVO_MODE_OFF);
-        write_driver.ClearError();
-        write_driver.ManualReset();
+        write_driver.SlvChangeMode(SERVO_MODE_OFF);;
         SPDLOG_INFO("Cleared errors after failed servo command.");
 
         return {
