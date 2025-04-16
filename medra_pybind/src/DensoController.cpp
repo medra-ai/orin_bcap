@@ -579,7 +579,7 @@ namespace denso_controller
         }
 
         // Execute the trajectory
-        CommandServoJointResult result;
+        CommandServoJointStatus result;
         bool force_limit_exceeded = false;
         bool trajectory_stopped_early = false;
 
@@ -612,12 +612,11 @@ namespace denso_controller
 
             current_waypoint_index = i;
             const auto &joint_position = traj[i];
-            result = CommandServoJoint(joint_position);
+            result = CommandServoJoint(joint_position, joint_positions[i].joint_position);
 
             joint_positions[i].time = std::chrono::system_clock::now();
-            joint_positions[i].joint_position = result.position;
 
-            switch (result.status)
+            switch (result)
             {
                 case CommandServoJointStatus::SUCCESS:
                     break;
@@ -827,6 +826,7 @@ namespace denso_controller
         std::sprintf(buffer, "Before closed-loop servo commands, joint error: [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]",
                      joint_error[0], joint_error[1], joint_error[2], joint_error[3], joint_error[4], joint_error[5]);
         SPDLOG_INFO(std::string(buffer));
+        JointPosition result_position;
 
         int count = 0;
         while (true)
@@ -865,8 +865,8 @@ namespace denso_controller
             }
 
             // Command the last waypoint again
-            auto result = CommandServoJoint(last_waypoint);
-            if (result.status != CommandServoJointStatus::SUCCESS)
+            auto result = CommandServoJoint(last_waypoint, result_position);
+            if (result != CommandServoJointStatus::SUCCESS)
             {
                 SPDLOG_ERROR("Closed loop servo j commands failed to command servo joint");
                 return ClosedLoopCommandServoJointResult::SLAVE_MOVE_FAILED;
@@ -923,30 +923,26 @@ namespace denso_controller
         return ExitSlaveModeResult::SUCCESS;
     }
 
-    DensoController::CommandServoJointResult
-    DensoController::CommandServoJoint(const JointPosition &joint_position)
+    DensoController::CommandServoJointStatus
+    DensoController::CommandServoJoint(const JointPosition &joint_position, JointPosition &result_position)
     {
         BCAP_VARIANT vntPose = VNTFromRadVector(joint_position);
         BCAP_VARIANT vntReturn;
         BCAP_HRESULT hr;
         hr = write_driver.SlvMove(&vntPose, &vntReturn);
 
-        JointPosition resultPos = RadVectorFromVNT(vntReturn);
+        RadVectorFromVNT(vntReturn, result_position);
 
         if (SUCCEEDED(hr))
         {
-            return {
-                CommandServoJointStatus::SUCCESS, resultPos
-            };
+            return CommandServoJointStatus::SUCCESS;
         }
         SPDLOG_ERROR("Failed to command servo joint. Resetting robot. Error code: " + std::to_string(hr));
 
         write_driver.SlvChangeMode(SERVO_MODE_OFF);;
         SPDLOG_INFO("Cleared errors after failed servo command.");
 
-        return {
-            CommandServoJointStatus::SLAVE_MOVE_FAILED, resultPos
-        };
+        return CommandServoJointStatus::SLAVE_MOVE_FAILED;
     }
 
     ////////////////////////////// Utilities //////////////////////////////
@@ -976,14 +972,12 @@ namespace denso_controller
         return vnt;
     }
 
-    JointPosition DensoController::RadVectorFromVNT(BCAP_VARIANT vnt0)
+    void DensoController::RadVectorFromVNT(BCAP_VARIANT vnt0, JointPosition &vect)
     {
-        JointPosition vect;
         for (size_t i = 0; i < JOINT_DOF; i++)
         {
             vect[i] = Deg2Rad(vnt0.Value.DoubleArray[i]);
         }
-        return vect;
     }
 
     BCAP_VARIANT DensoController::VNTFromRadVector(const JointPosition &vect0)

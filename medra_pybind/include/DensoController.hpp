@@ -311,12 +311,9 @@ private:
     enum class CommandServoJointStatus {
         SUCCESS, SLAVE_MOVE_FAILED
     };
-    struct CommandServoJointResult {
-        CommandServoJointStatus status;
-        JointPosition position;
-    };
+
     // Commands the robot to move to a joint position, in radians, in slave mode.
-    CommandServoJointResult CommandServoJoint(const JointPosition& waypoint);
+    CommandServoJointStatus CommandServoJoint(const JointPosition& waypoint, JointPosition &result_position);
 
     enum class ClosedLoopCommandServoJointResult {
         SUCCESS,
@@ -332,7 +329,7 @@ private:
 
     // Utility functions
     std::vector<double> VectorFromVNT(BCAP_VARIANT vnt0);
-    JointPosition RadVectorFromVNT(BCAP_VARIANT vnt0);
+    void RadVectorFromVNT(BCAP_VARIANT vnt0, JointPosition &vect);
     BCAP_VARIANT VNTFromVector(std::vector<double> vect0);
     BCAP_VARIANT VNTFromRadVector(const JointPosition &vect0);
 };
