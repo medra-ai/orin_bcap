@@ -579,7 +579,7 @@ namespace denso_controller
         }
 
         // Execute the trajectory
-        CommandServoJointStatus result;
+        CommandServoJointResult result;
         bool force_limit_exceeded = false;
         bool trajectory_stopped_early = false;
 
@@ -618,9 +618,9 @@ namespace denso_controller
 
             switch (result)
             {
-                case CommandServoJointStatus::SUCCESS:
+                case CommandServoJointResult::SUCCESS:
                     break;
-                case CommandServoJointStatus::SLAVE_MOVE_FAILED:
+                case CommandServoJointResult::SLAVE_MOVE_FAILED:
                     SPDLOG_ERROR(
                         "ExecuteServoTrajectory failed at waypoint "
                         + std::to_string(i)
@@ -866,7 +866,7 @@ namespace denso_controller
 
             // Command the last waypoint again
             auto result = CommandServoJoint(last_waypoint, result_position);
-            if (result != CommandServoJointStatus::SUCCESS)
+            if (result != CommandServoJointResult::SUCCESS)
             {
                 SPDLOG_ERROR("Closed loop servo j commands failed to command servo joint");
                 return ClosedLoopCommandServoJointResult::SLAVE_MOVE_FAILED;
@@ -923,7 +923,7 @@ namespace denso_controller
         return ExitSlaveModeResult::SUCCESS;
     }
 
-    DensoController::CommandServoJointStatus
+    DensoController::CommandServoJointResult
     DensoController::CommandServoJoint(const JointPosition &joint_position, JointPosition &result_position)
     {
         BCAP_VARIANT vntPose = VNTFromRadVector(joint_position);
@@ -935,14 +935,14 @@ namespace denso_controller
 
         if (SUCCEEDED(hr))
         {
-            return CommandServoJointStatus::SUCCESS;
+            return CommandServoJointResult::SUCCESS;
         }
         SPDLOG_ERROR("Failed to command servo joint. Resetting robot. Error code: " + std::to_string(hr));
 
         write_driver.SlvChangeMode(SERVO_MODE_OFF);;
         SPDLOG_INFO("Cleared errors after failed servo command.");
 
-        return CommandServoJointStatus::SLAVE_MOVE_FAILED;
+        return CommandServoJointResult::SLAVE_MOVE_FAILED;
     }
 
     ////////////////////////////// Utilities //////////////////////////////

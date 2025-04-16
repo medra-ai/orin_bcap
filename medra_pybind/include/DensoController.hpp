@@ -308,12 +308,12 @@ private:
     };
     ExitSlaveModeResult ExitSlaveMode();
 
-    enum class CommandServoJointStatus {
+    enum class CommandServoJointResult {
         SUCCESS, SLAVE_MOVE_FAILED
     };
 
     // Commands the robot to move to a joint position, in radians, in slave mode.
-    CommandServoJointStatus CommandServoJoint(const JointPosition& waypoint, JointPosition &result_position);
+    CommandServoJointResult CommandServoJoint(const JointPosition& waypoint, JointPosition &result_position);
 
     enum class ClosedLoopCommandServoJointResult {
         SUCCESS,
