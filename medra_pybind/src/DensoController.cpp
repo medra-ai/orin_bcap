@@ -710,13 +710,6 @@ namespace denso_controller
         TimestampedForceSequence& force_torque_sequence
     )
     {
-        // Exit early if no force limits are specified
-        if (!total_force_limit.has_value() && !total_torque_limit.has_value() && !per_axis_force_torque_limits.has_value())
-        {
-            SPDLOG_INFO("Skip force sensing loop");
-            return;
-        }
-
         const size_t total_ft_values = force_torque_sequence.size();
         const int period = 1000 / FORCE_SENSING_FREQUENCY_HZ; // period in milliseconds
         const int filter_size = 3;
