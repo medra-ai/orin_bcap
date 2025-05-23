@@ -6,7 +6,7 @@
 #include "b-Cap.h"
 #include "DensoController.hpp"
 #include "filter.hpp"
-
+#include "contact.hpp"
 #include <iostream>
 #include <math.h>
 #include <time.h>
@@ -708,7 +708,7 @@ namespace denso_controller
         const size_t total_ft_values = force_torque_sequence.size();
         const int period = 1000 / FORCE_SENSING_FREQUENCY_HZ; // period in milliseconds
         const int filter_size = 3;
-        filter::MeanFilter<FORCE_TORQUE_DOF> mean_filter(filter_size);
+        contact::ContactFilter<FORCE_TORQUE_DOF> contact_filter(filter_size);
 
         BCAP_HRESULT hr;
         ForceTorque ft_values;
@@ -730,10 +730,10 @@ namespace denso_controller
             {
                 HandleError(hr, "GetForceValue failed.");
             }
-            mean_filter.AddValue(ft_values);
+            contact_filter.AddValue(std::chrono::system_clock::now().time_since_epoch().count(), ft_values);
 
             // Use the mean of the last filter_size force values
-            ft_values = mean_filter.GetMean();
+            ft_values = contact_filter.GetContact();
 
             // Update the log of force-torque readings
             force_torque_sequence[ft_sequence_index].time = std::chrono::system_clock::now();

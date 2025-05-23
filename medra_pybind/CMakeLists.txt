@@ -59,7 +59,7 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # Add the pybind module
 pybind11_add_module(_${MODULE_NAME} ${PYBIND11_SOURCES})
-target_link_libraries(_${MODULE_NAME} PRIVATE spdlog::spdlog)
+target_link_libraries(_${MODULE_NAME} PRIVATE spdlog::spdlog pybind11::embed)
 
 add_executable(
   test_execute_servo_trajectory 
@@ -67,7 +67,7 @@ add_executable(
   src/DensoController.cpp 
   src/b-Cap.c
 )
-target_link_libraries(test_execute_servo_trajectory PRIVATE spdlog::spdlog)
+target_link_libraries(test_execute_servo_trajectory PRIVATE spdlog::spdlog pybind11::embed)
 
 add_custom_target(generate_stub ALL
     COMMAND ${Python_EXECUTABLE} "-m" "pybind11_stubgen" "-o${CMAKE_CURRENT_BINARY_DIR}" "_${MODULE_NAME}"
