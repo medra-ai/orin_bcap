@@ -201,6 +201,7 @@ public:
 
     // Movement commands
     BCAP_HRESULT SlvChangeMode(const char* mode);
+    BCAP_HRESULT SlvRecvFormat(const char* format);
     BCAP_HRESULT SlvMove(BCAP_VARIANT* pose, BCAP_VARIANT* result);
 
     // Resets the force sensor.

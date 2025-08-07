@@ -372,6 +372,12 @@ namespace denso_controller
         return bCap_RobotExecute(iSockFD, lhRobot, "slvChangeMode", mode, &lResult);
     }
 
+    BCAP_HRESULT DensoReadWriteDriver::SlvRecvFormat(const char *format)
+    {
+        long lResult;
+        return bCap_RobotExecute(iSockFD, lhRobot, "slvRecvFormat", format, &lResult);
+    }
+
     BCAP_HRESULT DensoReadWriteDriver::SlvMove(BCAP_VARIANT *pose, BCAP_VARIANT *result)
     {
         return bCap_RobotExecute2(iSockFD, lhRobot, "slvMove", pose, result);
@@ -909,6 +915,17 @@ namespace denso_controller
             SPDLOG_ERROR("Failed to enter b-CAP slave mode.");
             return EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED;
         }
+
+        // Set slvRecvFormat to return both timestamp and J-type joint positions
+        // 0x0012 = 0x0010 (timestamp) + 0x0002 (J-type positions)
+        hr = write_driver.SlvRecvFormat("18");  // 18 decimal = 0x0012 hex
+        if (FAILED(hr))
+        {
+            SPDLOG_ERROR("Failed to set slvRecvFormat for timestamp and joint positions.");
+            return EnterSlaveModeResult::ENTER_SLAVE_MODE_FAILED;
+        }
+        SPDLOG_INFO("Set slvRecvFormat to return timestamp and J-type joint positions");
+
         return EnterSlaveModeResult::SUCCESS;
     }
 
@@ -974,9 +991,30 @@ namespace denso_controller
 
     void DensoController::RadVectorFromVNT(BCAP_VARIANT vnt0, JointPosition &vect)
     {
-        for (size_t i = 0; i < JOINT_DOF; i++)
+        // Check if this is the new timestamp + J-type format (slvRecvFormat 0x0012)
+        if (vnt0.Type == (VT_VARIANT | VT_ARRAY) && vnt0.Arrays >= 2)
         {
-            vect[i] = Deg2Rad(vnt0.Value.DoubleArray[i]);
+            // Format: [timestamp (VT_I4), joint_positions (VT_R8 array)]
+            // The timestamp is at index 0, joint positions start at index 1
+            BCAP_VARIANT* variantArray = (BCAP_VARIANT*)vnt0.Value.Data;
+            
+            // Extract timestamp (microseconds)
+            uint32_t timestamp_us = variantArray[0].Value.LongValue;
+            
+            // Extract joint positions from the second variant
+            BCAP_VARIANT jointVariant = variantArray[1];
+            for (size_t i = 0; i < JOINT_DOF; i++)
+            {
+                vect[i] = Deg2Rad(jointVariant.Value.DoubleArray[i]);
+            }
+        }
+        else
+        {
+            // Original format: just joint positions
+            for (size_t i = 0; i < JOINT_DOF; i++)
+            {
+                vect[i] = Deg2Rad(vnt0.Value.DoubleArray[i]);
+            }
         }
     }
 
